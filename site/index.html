@@ -12,40 +12,46 @@
   </head>
   <body>
     <header class="site-header">
-      <a class="brand" href="#top" aria-label="На главную">
+      <a class="brand" href="#top" aria-label="На главную" data-i18n-aria="aria.home">
         <span class="brand-mark">B</span>
         <span data-studio-name>Beauty Studio</span>
       </a>
 
-      <button class="menu-button" id="menuButton" type="button" aria-label="Открыть меню" aria-expanded="false">
-        <span></span>
-        <span></span>
-      </button>
+      <div class="header-actions">
+        <div class="language-switch" aria-label="Выбор языка" data-i18n-aria="aria.language">
+          <button class="is-active" type="button" data-language="ru" aria-pressed="true">RU</button>
+          <button type="button" data-language="ua" aria-pressed="false">UA</button>
+        </div>
+        <button class="menu-button" id="menuButton" type="button" aria-label="Открыть меню" aria-expanded="false" data-i18n-aria="aria.menu">
+          <span></span>
+          <span></span>
+        </button>
+      </div>
 
-      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
-        <a href="#about">О студии</a>
-        <a href="#services">Услуги</a>
-        <a href="#masters">Мастера</a>
-        <a href="#portfolio">Портфолио</a>
-        <a href="#contacts">Контакты</a>
-        <a class="nav-cta" href="https://t.me/demo_beauty_bot" data-telegram-link target="_blank" rel="noreferrer">Записаться</a>
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация" data-i18n-aria="nav.main">
+        <a href="#about" data-i18n="nav.about">О студии</a>
+        <a href="#services" data-i18n="nav.services">Услуги</a>
+        <a href="#masters" data-i18n="nav.masters">Мастера</a>
+        <a href="#portfolio" data-i18n="nav.portfolio">Портфолио</a>
+        <a href="#contacts" data-i18n="nav.contacts">Контакты</a>
+        <a class="nav-cta" href="https://t.me/demo_beauty_bot" data-telegram-link target="_blank" rel="noreferrer" data-i18n="actions.book">Записаться</a>
       </nav>
     </header>
 
     <main id="top">
       <section class="hero section">
         <div class="hero-content reveal is-visible">
-          <p class="eyebrow">Студия красоты · <span data-city>Харьков</span></p>
+          <p class="eyebrow" id="heroEyebrow">Студия красоты · <span data-city>Харьков</span></p>
           <h1 data-studio-name>Beauty Studio</h1>
-          <p class="hero-tagline" id="heroTagline">Спокойное пространство красоты, ухода и уверенности</p>
+          <p class="hero-tagline" id="heroTagline" data-i18n="hero.tagline">Спокойное пространство красоты, ухода и уверенности</p>
           <p class="hero-description" id="heroDescription"></p>
           <div class="hero-actions">
-            <a class="button" href="https://t.me/demo_beauty_bot" data-telegram-link target="_blank" rel="noreferrer">Записаться</a>
-            <a class="button button-secondary" href="#services">Посмотреть услуги</a>
+            <a class="button" href="https://t.me/demo_beauty_bot" data-telegram-link target="_blank" rel="noreferrer" data-i18n="actions.book">Записаться</a>
+            <a class="button button-secondary" href="#services" data-i18n="actions.viewServices">Посмотреть услуги</a>
           </div>
         </div>
 
-        <div class="hero-media reveal is-visible" aria-label="Демонстрационное beauty-изображение">
+        <div class="hero-media reveal is-visible" aria-label="Демонстрационное beauty-изображение" data-i18n-aria="hero.media">
           <div class="hero-photo">
             <div class="hero-photo-inner">
               <span class="hero-arch"></span>
@@ -59,125 +65,121 @@
 
       <section class="section split-section" id="about">
         <div>
-          <p class="eyebrow">О студии</p>
-          <h2>Уход, комфорт и внимание к деталям</h2>
+          <p class="eyebrow" data-i18n="about.eyebrow">О студии</p>
+          <h2 data-i18n="about.title">Уход, комфорт и внимание к деталям</h2>
         </div>
         <div class="section-copy">
-          <p>
-            <span data-studio-name>Beauty Studio</span> — светлая студия для повседневного ухода и образов к важным событиям.
-          </p>
-          <p>
-            В работе важны стерильность, качественные материалы, комфорт и индивидуальный подход.
-          </p>
+          <p data-i18n="about.text1">Beauty Studio — светлая студия для повседневного ухода и образов к важным событиям.</p>
+          <p data-i18n="about.text2">В работе важны стерильность, качественные материалы, комфорт и индивидуальный подход.</p>
         </div>
       </section>
 
       <section class="section" id="services">
         <div class="section-heading">
-          <p class="eyebrow">Услуги</p>
-          <h2>Основные направления</h2>
-          <p>Примерные цены и длительность. Данные легко заменить под конкретную студию.</p>
+          <p class="eyebrow" data-i18n="services.eyebrow">Услуги</p>
+          <h2 data-i18n="services.title">Основные направления</h2>
+          <p data-i18n="services.lead">Примерные цены и длительность. Данные легко заменить под конкретную студию.</p>
         </div>
         <div class="services-grid" id="servicesGrid"></div>
       </section>
 
       <section class="section muted-section" id="masters">
         <div class="section-heading">
-          <p class="eyebrow">Наши мастера</p>
-          <h2>Команда</h2>
-          <p>Раздел можно оставить для студии или отключить для частного мастера.</p>
+          <p class="eyebrow" data-i18n="masters.eyebrow">Наши мастера</p>
+          <h2 data-i18n="masters.title">Команда</h2>
+          <p data-i18n="masters.lead">Раздел можно оставить для студии или отключить для частного мастера.</p>
         </div>
         <div class="masters-grid" id="mastersGrid"></div>
       </section>
 
       <section class="section" id="portfolio">
         <div class="section-heading">
-          <p class="eyebrow">Портфолио</p>
-          <h2>Галерея работ</h2>
-          <p>Демонстрационная галерея. Замените изображения на реальные работы клиента.</p>
+          <p class="eyebrow" data-i18n="portfolio.eyebrow">Портфолио</p>
+          <h2 data-i18n="portfolio.title">Галерея работ</h2>
+          <p data-i18n="portfolio.lead">Демонстрационная галерея. Замените изображения на реальные работы клиента.</p>
         </div>
-        <div class="filters" aria-label="Фильтр портфолио">
-          <button class="filter-button is-active" type="button" data-filter="all">Все</button>
-          <button class="filter-button" type="button" data-filter="lashes">Ресницы</button>
-          <button class="filter-button" type="button" data-filter="brows">Брови</button>
-          <button class="filter-button" type="button" data-filter="nails">Ногти</button>
-          <button class="filter-button" type="button" data-filter="makeup">Макияж</button>
+        <div class="filters" aria-label="Фильтр портфолио" data-i18n-aria="portfolio.filterLabel">
+          <button class="filter-button is-active" type="button" data-filter="all" data-i18n="portfolio.filters.all">Все</button>
+          <button class="filter-button" type="button" data-filter="lashes" data-i18n="portfolio.filters.lashes">Ресницы</button>
+          <button class="filter-button" type="button" data-filter="brows" data-i18n="portfolio.filters.brows">Брови</button>
+          <button class="filter-button" type="button" data-filter="nails" data-i18n="portfolio.filters.nails">Ногти</button>
+          <button class="filter-button" type="button" data-filter="makeup" data-i18n="portfolio.filters.makeup">Макияж</button>
         </div>
         <div class="portfolio-grid" id="portfolioGrid"></div>
       </section>
 
       <section class="section booking-section" id="booking">
         <div class="section-heading">
-          <p class="eyebrow">Как записаться</p>
-          <h2>Три простых шага</h2>
+          <p class="eyebrow" data-i18n="booking.eyebrow">Как записаться</p>
+          <h2 data-i18n="booking.title">Три простых шага</h2>
         </div>
         <div class="steps-grid">
           <article class="step-card reveal">
             <span>01</span>
-            <h3>Выберите услугу</h3>
-            <p>Откройте нужное направление и посмотрите детали.</p>
+            <h3 data-i18n-array="booking.steps.0" data-i18n-index="0">Выберите услугу</h3>
+            <p data-i18n-array="booking.steps.0" data-i18n-index="1">Откройте нужное направление и посмотрите детали.</p>
           </article>
           <article class="step-card reveal">
             <span>02</span>
-            <h3>Нажмите кнопку записи</h3>
-            <p>Кнопка ведёт в Telegram для заявки.</p>
+            <h3 data-i18n-array="booking.steps.1" data-i18n-index="0">Нажмите кнопку записи</h3>
+            <p data-i18n-array="booking.steps.1" data-i18n-index="1">Кнопка ведёт в Telegram для заявки.</p>
           </article>
           <article class="step-card reveal">
             <span>03</span>
-            <h3>Оставьте заявку</h3>
-            <p>Администратор подтвердит запись отдельным сообщением.</p>
+            <h3 data-i18n-array="booking.steps.2" data-i18n-index="0">Оставьте заявку</h3>
+            <p data-i18n-array="booking.steps.2" data-i18n-index="1">Администратор подтвердит запись отдельным сообщением.</p>
           </article>
         </div>
         <a class="button booking-button" href="https://t.me/demo_beauty_bot" data-telegram-link target="_blank" rel="noreferrer">
-          Записаться через Telegram
+          <span data-i18n="actions.bookTelegram">Записаться через Telegram</span>
         </a>
       </section>
 
       <section class="section why-section">
         <div class="section-heading">
-          <p class="eyebrow">Почему выбирают нас</p>
-          <h2>То, что важно клиенту</h2>
+          <p class="eyebrow" data-i18n="why.eyebrow">Почему выбирают нас</p>
+          <h2 data-i18n="why.title">То, что важно клиенту</h2>
         </div>
         <div class="why-grid">
-          <div class="why-item reveal">Удобная запись</div>
-          <div class="why-item reveal">Внимательное отношение</div>
-          <div class="why-item reveal">Стерильность</div>
-          <div class="why-item reveal">Качественные материалы</div>
-          <div class="why-item reveal">Комфортная атмосфера</div>
+          <div class="why-item reveal" data-i18n-array="why.items" data-i18n-index="0">Удобная запись</div>
+          <div class="why-item reveal" data-i18n-array="why.items" data-i18n-index="1">Внимательное отношение</div>
+          <div class="why-item reveal" data-i18n-array="why.items" data-i18n-index="2">Стерильность</div>
+          <div class="why-item reveal" data-i18n-array="why.items" data-i18n-index="3">Качественные материалы</div>
+          <div class="why-item reveal" data-i18n-array="why.items" data-i18n-index="4">Комфортная атмосфера</div>
         </div>
       </section>
 
       <section class="section muted-section" id="reviews">
         <div class="section-heading">
-          <p class="eyebrow">Отзывы</p>
-          <h2>Место для реальных отзывов</h2>
-          <p>Карточки ниже — заглушки. Их нужно заменить реальными отзывами.</p>
+          <p class="eyebrow" data-i18n="reviews.eyebrow">Отзывы</p>
+          <h2 data-i18n="reviews.title">Место для реальных отзывов</h2>
+          <p data-i18n="reviews.lead">Карточки ниже — заглушки. Их нужно заменить реальными отзывами.</p>
         </div>
         <div class="reviews-grid" id="reviewsGrid"></div>
       </section>
 
       <section class="section contacts-section" id="contacts">
         <div class="section-heading">
-          <p class="eyebrow">Контакты</p>
-          <h2>Связаться и оставить заявку</h2>
+          <p class="eyebrow" data-i18n="contacts.eyebrow">Контакты</p>
+          <h2 data-i18n="contacts.title">Связаться и оставить заявку</h2>
         </div>
         <div class="contacts-layout">
           <div class="contact-card reveal">
             <dl>
               <div>
-                <dt>Адрес</dt>
+                <dt data-i18n="contacts.address">Адрес</dt>
                 <dd id="contactAddress">Демонстрационный адрес, Харьков</dd>
               </div>
               <div>
-                <dt>Телефон</dt>
+                <dt data-i18n="contacts.phone">Телефон</dt>
                 <dd><a id="contactPhone" href="tel:+380000000000">+380 00 000 00 00</a></dd>
               </div>
               <div>
-                <dt>График</dt>
+                <dt data-i18n="contacts.hours">График</dt>
                 <dd id="contactHours">Ежедневно с 09:00 до 19:00</dd>
               </div>
               <div>
-                <dt>Соцсети</dt>
+                <dt data-i18n="contacts.socials">Соцсети</dt>
                 <dd>
                   <a href="https://instagram.com/demo_beauty_studio" data-instagram-link target="_blank" rel="noreferrer">Instagram</a>
                   ·
@@ -186,34 +188,34 @@
               </div>
             </dl>
             <div class="contact-actions">
-              <a class="button" id="callButton" href="tel:+380000000000">Позвонить</a>
+              <a class="button" id="callButton" href="tel:+380000000000" data-i18n="actions.call">Позвонить</a>
               <a class="button button-secondary" href="https://t.me/demo_beauty_studio" data-telegram-contact target="_blank" rel="noreferrer">
-                Написать в Telegram
+                <span data-i18n="actions.telegram">Написать в Telegram</span>
               </a>
             </div>
           </div>
           <div class="map-placeholder reveal">
-            <span>Место под карту</span>
-            <p>Сюда можно вставить карту или ссылку на маршрут.</p>
+            <span data-i18n="contacts.mapTitle">Место под карту</span>
+            <p data-i18n="contacts.mapText">Сюда можно вставить карту или ссылку на маршрут.</p>
           </div>
         </div>
       </section>
     </main>
 
     <a class="floating-booking" href="https://t.me/demo_beauty_bot" data-telegram-link target="_blank" rel="noreferrer">
-      Записаться
+      <span data-i18n="actions.book">Записаться</span>
     </a>
 
     <footer class="site-footer">
       <div>
         <strong data-studio-name>Beauty Studio</strong>
-        <p>Демонстрационный сайт-шаблон для бьюти-сферы.</p>
+        <p data-i18n="footer.note">Демонстрационный сайт-шаблон для бьюти-сферы.</p>
       </div>
-      <nav aria-label="Нижняя навигация">
-        <a href="#services">Услуги</a>
-        <a href="#portfolio">Портфолио</a>
-        <a href="#contacts">Контакты</a>
-        <a href="#">Политика конфиденциальности</a>
+      <nav aria-label="Нижняя навигация" data-i18n-aria="nav.footer">
+        <a href="#services" data-i18n="nav.services">Услуги</a>
+        <a href="#portfolio" data-i18n="nav.portfolio">Портфолио</a>
+        <a href="#contacts" data-i18n="nav.contacts">Контакты</a>
+        <a href="#" data-i18n="footer.privacy">Политика конфиденциальности</a>
       </nav>
       <div class="footer-socials">
         <a href="https://instagram.com/demo_beauty_studio" data-instagram-link target="_blank" rel="noreferrer">Instagram</a>
