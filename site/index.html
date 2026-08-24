@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Beauty Studio: демонстрационный сайт-визитка для студии красоты."
+    />
+    <title>Beauty Studio — сайт-визитка студии красоты</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="На главную">
+        <span class="brand-mark">B</span>
+        <span data-studio-name>Beauty Studio</span>
+      </a>
+
+      <button class="menu-button" id="menuButton" type="button" aria-label="Открыть меню" aria-expanded="false">
+        <span></span>
+        <span></span>
+      </button>
+
+      <nav class="site-nav" id="siteNav" aria-label="Основная навигация">
+        <a href="#about">О студии</a>
+        <a href="#services">Услуги</a>
+        <a href="#masters">Мастера</a>
+        <a href="#portfolio">Портфолио</a>
+        <a href="#contacts">Контакты</a>
+        <a class="nav-cta" href="https://t.me/demo_beauty_bot" data-telegram-link target="_blank" rel="noreferrer">Записаться</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero section">
+        <div class="hero-content reveal is-visible">
+          <p class="eyebrow">Студия красоты · <span data-city>Харьков</span></p>
+          <h1 data-studio-name>Beauty Studio</h1>
+          <p class="hero-tagline" id="heroTagline">Спокойное пространство красоты, ухода и уверенности</p>
+          <p class="hero-description" id="heroDescription">
+            Демонстрационный шаблон сайта для бьюти-студии, частного мастера или салона.
+          </p>
+          <div class="hero-actions">
+            <a class="button" href="https://t.me/demo_beauty_bot" data-telegram-link target="_blank" rel="noreferrer">Записаться</a>
+            <a class="button button-secondary" href="#services">Посмотреть услуги</a>
+          </div>
+        </div>
+
+        <div class="hero-media reveal is-visible" aria-label="Демонстрационное beauty-изображение">
+          <div class="hero-photo">
+            <div class="hero-photo-inner">
+              <span class="hero-arch"></span>
+              <span class="hero-stroke hero-stroke-a"></span>
+              <span class="hero-stroke hero-stroke-b"></span>
+              <span class="hero-caption">demo beauty visual</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section split-section" id="about">
+        <div>
+          <p class="eyebrow">О студии</p>
+          <h2>Красота без спешки и перегруза</h2>
+        </div>
+        <div class="section-copy">
+          <p>
+            <span data-studio-name>Beauty Studio</span> — демонстрационный шаблон для студии красоты. Он подходит для салона,
+            частного мастера или небольшой команды, которой нужен понятный сайт с услугами, портфолио и заявкой на запись.
+          </p>
+          <p>
+            В текстах сделан акцент на качестве, стерильности, комфорте и индивидуальном подходе без неподтверждённых
+            обещаний и выдуманных достижений.
+          </p>
+        </div>
+      </section>
+
+      <section class="section" id="services">
+        <div class="section-heading">
+          <p class="eyebrow">Услуги</p>
+          <h2>Основные направления</h2>
+          <p>Цены и длительность демонстрационные. Их можно заменить под конкретного клиента в одном файле.</p>
+        </div>
+        <div class="services-grid" id="servicesGrid"></div>
+      </section>
+
+      <section class="section muted-section" id="masters">
+        <div class="section-heading">
+          <p class="eyebrow">Наши мастера</p>
+          <h2>Команда шаблона</h2>
+          <p>Раздел можно оставить, отредактировать или полностью отключить для частного мастера.</p>
+        </div>
+        <div class="masters-grid" id="mastersGrid"></div>
+      </section>
+
+      <section class="section" id="portfolio">
+        <div class="section-heading">
+          <p class="eyebrow">Портфолио</p>
+          <h2>Галерея работ</h2>
+          <p>Это демонстрационные изображения-заглушки. В реальном проекте их нужно заменить на работы клиента.</p>
+        </div>
+        <div class="filters" aria-label="Фильтр портфолио">
+          <button class="filter-button is-active" type="button" data-filter="all">Все</button>
+          <button class="filter-button" type="button" data-filter="lashes">Ресницы</button>
+          <button class="filter-button" type="button" data-filter="brows">Брови</button>
+          <button class="filter-button" type="button" data-filter="nails">Ногти</button>
+          <button class="filter-button" type="button" data-filter="makeup">Макияж</button>
+        </div>
+        <div class="portfolio-grid" id="portfolioGrid"></div>
+      </section>
+
+      <section class="section booking-section" id="booking">
+        <div class="section-heading">
+          <p class="eyebrow">Как записаться</p>
+          <h2>Три простых шага</h2>
+        </div>
+        <div class="steps-grid">
+          <article class="step-card reveal">
+            <span>01</span>
+            <h3>Выберите услугу</h3>
+            <p>Посмотрите описание, примерную длительность и демонстрационную цену.</p>
+          </article>
+          <article class="step-card reveal">
+            <span>02</span>
+            <h3>Нажмите кнопку записи</h3>
+            <p>Переход ведёт в Telegram-бота или другой канал записи клиента.</p>
+          </article>
+          <article class="step-card reveal">
+            <span>03</span>
+            <h3>Оставьте заявку</h3>
+            <p>Клиент оставляет заявку на запись и ждёт подтверждения от администратора.</p>
+          </article>
+        </div>
+        <a class="button booking-button" href="https://t.me/demo_beauty_bot" data-telegram-link target="_blank" rel="noreferrer">
+          Записаться через Telegram
+        </a>
+      </section>
+
+      <section class="section why-section">
+        <div class="section-heading">
+          <p class="eyebrow">Почему выбирают нас</p>
+          <h2>То, что важно клиенту</h2>
+        </div>
+        <div class="why-grid">
+          <div class="why-item reveal">Удобная запись</div>
+          <div class="why-item reveal">Внимательное отношение</div>
+          <div class="why-item reveal">Стерильность</div>
+          <div class="why-item reveal">Качественные материалы</div>
+          <div class="why-item reveal">Комфортная атмосфера</div>
+        </div>
+      </section>
+
+      <section class="section muted-section" id="reviews">
+        <div class="section-heading">
+          <p class="eyebrow">Отзывы</p>
+          <h2>Место для реальных отзывов</h2>
+          <p>В шаблоне нет фальшивых отзывов. Эти карточки показывают, куда добавить реальные комментарии клиентов.</p>
+        </div>
+        <div class="reviews-grid" id="reviewsGrid"></div>
+      </section>
+
+      <section class="section contacts-section" id="contacts">
+        <div class="section-heading">
+          <p class="eyebrow">Контакты</p>
+          <h2>Связаться и оставить заявку</h2>
+        </div>
+        <div class="contacts-layout">
+          <div class="contact-card reveal">
+            <dl>
+              <div>
+                <dt>Адрес</dt>
+                <dd id="contactAddress">Демонстрационный адрес, Харьков</dd>
+              </div>
+              <div>
+                <dt>Телефон</dt>
+                <dd><a id="contactPhone" href="tel:+380000000000">+380 00 000 00 00</a></dd>
+              </div>
+              <div>
+                <dt>График</dt>
+                <dd id="contactHours">Ежедневно с 09:00 до 19:00</dd>
+              </div>
+              <div>
+                <dt>Соцсети</dt>
+                <dd>
+                  <a href="https://instagram.com/demo_beauty_studio" data-instagram-link target="_blank" rel="noreferrer">Instagram</a>
+                  ·
+                  <a href="https://t.me/demo_beauty_studio" data-telegram-contact target="_blank" rel="noreferrer">Telegram</a>
+                </dd>
+              </div>
+            </dl>
+            <div class="contact-actions">
+              <a class="button" id="callButton" href="tel:+380000000000">Позвонить</a>
+              <a class="button button-secondary" href="https://t.me/demo_beauty_studio" data-telegram-contact target="_blank" rel="noreferrer">
+                Написать в Telegram
+              </a>
+            </div>
+          </div>
+          <div class="map-placeholder reveal">
+            <span>Место под карту</span>
+            <p>Здесь можно вставить Google Maps, iframe или ссылку на карту.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <a class="floating-booking" href="https://t.me/demo_beauty_bot" data-telegram-link target="_blank" rel="noreferrer">
+      Записаться
+    </a>
+
+    <footer class="site-footer">
+      <div>
+        <strong data-studio-name>Beauty Studio</strong>
+        <p>Демонстрационный шаблон сайта для бьюти-сферы.</p>
+      </div>
+      <nav aria-label="Нижняя навигация">
+        <a href="#services">Услуги</a>
+        <a href="#portfolio">Портфолио</a>
+        <a href="#contacts">Контакты</a>
+        <a href="#">Политика конфиденциальности</a>
+      </nav>
+      <div class="footer-socials">
+        <a href="https://instagram.com/demo_beauty_studio" data-instagram-link target="_blank" rel="noreferrer">Instagram</a>
+        <a href="https://t.me/demo_beauty_studio" data-telegram-contact target="_blank" rel="noreferrer">Telegram</a>
+      </div>
+    </footer>
+
+    <script src="./data.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
