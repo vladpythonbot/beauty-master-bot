@@ -1,6 +1,7 @@
 from html import escape
 
 from data import SERVICES
+from keyboards import format_date
 
 
 def get_service(service_id: str) -> dict | None:
@@ -38,10 +39,11 @@ def application_summary(data: dict) -> str:
         "📝 <b>Перевірте заявку</b>\n\n"
         f"Ім'я: <b>{escape(data['name'])}</b>\n"
         f"Послуги:\n{format_selected_services(data['service_ids'])}\n"
-        f"Дата: <b>{escape(data['date'])}</b>\n"
-        f"Час: <b>{escape(data['time'])}</b>\n"
+        f"Адреса/майстер: <b>{escape(data['group_name'])}</b>\n"
+        f"Дата: <b>{format_date(data['slot_date'])}</b>\n"
+        f"Час: <b>{escape(data['slot_time'])}</b>\n"
         f"Контакт: <b>{escape(data['contact'])}</b>\n\n"
-        "Запис ще не підтверджено. Майстер перевірить заявку та зв'яжеться з вами."
+        "Після підтвердження заявки майстром цей час буде остаточно закріплено за вами."
     )
 
 
@@ -54,8 +56,9 @@ def admin_application_text(application_id: int, user_id: int, username: str | No
         f"Username: {username_text}\n\n"
         f"Ім'я: <b>{escape(data['name'])}</b>\n"
         f"Послуги:\n{format_selected_services(data['service_ids'])}\n"
-        f"Бажана дата: <b>{escape(data['date'])}</b>\n"
-        f"Бажаний час: <b>{escape(data['time'])}</b>\n"
+        f"Адреса/майстер: <b>{escape(data['group_name'])}</b>\n"
+        f"Дата: <b>{format_date(data['slot_date'])}</b>\n"
+        f"Час: <b>{escape(data['slot_time'])}</b>\n"
         f"Контакт: <b>{escape(data['contact'])}</b>\n\n"
-        "Підтвердіть або скасуйте заявку. Бот не бронює час автоматично."
+        "Підтвердіть або скасуйте заявку. До рішення майстра час тимчасово заблоковано."
     )

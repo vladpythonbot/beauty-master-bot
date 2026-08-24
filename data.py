@@ -7,31 +7,16 @@ MASTER_INFO = (
 )
 
 SERVICES = [
-    {
-        "id": "classic_manicure",
-        "name": "Манікюр класичний",
-        "price": "500 грн",
-    },
-    {
-        "id": "gel_manicure",
-        "name": "Манікюр + покриття гель-лаком",
-        "price": "750 грн",
-    },
-    {
-        "id": "brow_correction",
-        "name": "Корекція брів",
-        "price": "350 грн",
-    },
-    {
-        "id": "brow_coloring",
-        "name": "Фарбування брів",
-        "price": "300 грн",
-    },
-    {
-        "id": "day_makeup",
-        "name": "Макіяж денний",
-        "price": "900 грн",
-    },
+    {"id": "classic_manicure", "name": "Манікюр класичний", "price": "500 грн"},
+    {"id": "gel_manicure", "name": "Манікюр + покриття гель-лаком", "price": "750 грн"},
+    {"id": "brow_correction", "name": "Корекція брів", "price": "350 грн"},
+    {"id": "brow_coloring", "name": "Фарбування брів", "price": "300 грн"},
+    {"id": "day_makeup", "name": "Макіяж денний", "price": "900 грн"},
+]
+
+SCHEDULE_GROUPS = [
+    {"id": "studio", "name": "Студія"},
+    {"id": "address", "name": "Виїзд / інша адреса"},
 ]
 
 CONTACTS = (
