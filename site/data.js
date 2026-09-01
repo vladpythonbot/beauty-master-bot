@@ -5,7 +5,7 @@ const siteConfig = {
     ru: "Харьков",
     ua: "Харків",
   },
-  telegramBotUrl: "https://t.me/demo_beauty_bot",
+  telegramBotUrl: "https://t.me/BeautyAssistantDemo_bot",
   instagramUrl: "https://instagram.com/demo_beauty_studio",
   telegramUrl: "https://t.me/demo_beauty_studio",
   phone: "+380 00 000 00 00",
