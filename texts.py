@@ -29,7 +29,7 @@ def booking_services_text(selected_ids: list[str] | None = None) -> str:
     selected_line = f"\n\nОбрано: <b>{selected_count}</b>" if selected_count else ""
     return (
         f"{services_text()}"
-        "\n\nОберіть одну або кілька послуг кнопками нижче."
+        "\n\nОберіть одну або кілька послуг."
         f"{selected_line}"
     )
 
@@ -37,13 +37,13 @@ def booking_services_text(selected_ids: list[str] | None = None) -> str:
 def application_summary(data: dict) -> str:
     return (
         "📝 <b>Перевірте заявку</b>\n\n"
-        f"Ім'я: <b>{escape(data['name'])}</b>\n"
         f"Послуги:\n{format_selected_services(data['service_ids'])}\n"
         f"Адреса/майстер: <b>{escape(data['group_name'])}</b>\n"
         f"Дата: <b>{format_date(data['slot_date'])}</b>\n"
         f"Час: <b>{escape(data['slot_time'])}</b>\n"
+        f"Ім'я: <b>{escape(data['name'])}</b>\n"
         f"Контакт: <b>{escape(data['contact'])}</b>\n\n"
-        "Після підтвердження заявки майстром цей час буде остаточно закріплено за вами."
+        "Майстер підтвердить запис окремим повідомленням."
     )
 
 
@@ -54,11 +54,31 @@ def admin_application_text(application_id: int, user_id: int, username: str | No
         f"ID заявки: <b>{application_id}</b>\n"
         f"Telegram ID: <code>{user_id}</code>\n"
         f"Username: {username_text}\n\n"
-        f"Ім'я: <b>{escape(data['name'])}</b>\n"
         f"Послуги:\n{format_selected_services(data['service_ids'])}\n"
         f"Адреса/майстер: <b>{escape(data['group_name'])}</b>\n"
         f"Дата: <b>{format_date(data['slot_date'])}</b>\n"
         f"Час: <b>{escape(data['slot_time'])}</b>\n"
+        f"Ім'я: <b>{escape(data['name'])}</b>\n"
         f"Контакт: <b>{escape(data['contact'])}</b>\n\n"
-        "Підтвердіть або скасуйте заявку. До рішення майстра час тимчасово заблоковано."
+        "Підтвердіть або скасуйте заявку."
     )
+
+
+def admin_applications_text(applications: list[dict]) -> str:
+    if not applications:
+        return "Заявок поки немає."
+
+    status_names = {
+        "new": "очікує",
+        "confirmed": "підтверджено",
+        "cancelled": "скасовано",
+    }
+    lines = ["📝 <b>Останні заявки</b>", ""]
+    for item in applications:
+        lines.append(
+            f"#{item['id']} · {escape(item['desired_date'])} {escape(item['desired_time'])} · "
+            f"{escape(item['client_name'])} · {escape(status_names.get(item['status'], item['status']))}"
+        )
+        lines.append(f"{escape(item['service'])}")
+        lines.append("")
+    return "\n".join(lines).strip()

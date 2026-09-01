@@ -8,7 +8,7 @@ def main_menu() -> ReplyKeyboardMarkup:
         keyboard=[
             [KeyboardButton(text="Записатися")],
             [KeyboardButton(text="Послуги"), KeyboardButton(text="Портфоліо")],
-            [KeyboardButton(text="Інфо")],
+            [KeyboardButton(text="Контакти")],
         ],
         resize_keyboard=True,
         input_field_placeholder="Оберіть дію",
@@ -27,6 +27,7 @@ def admin_menu_keyboard() -> InlineKeyboardMarkup:
         inline_keyboard=[
             [InlineKeyboardButton(text="Додати вільні вікна", callback_data="admin_add_slots")],
             [InlineKeyboardButton(text="Переглянути / редагувати вікна", callback_data="admin_list_slots")],
+            [InlineKeyboardButton(text="Переглянути заявки", callback_data="admin_list_applications")],
         ]
     )
 
@@ -119,6 +120,25 @@ def admin_slots_keyboard(slots: list[dict]) -> InlineKeyboardMarkup:
                 ]
             )
     keyboard.append([InlineKeyboardButton(text="Додати вікна", callback_data="admin_add_slots")])
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+
+def admin_application_list_keyboard(applications: list[dict]) -> InlineKeyboardMarkup:
+    keyboard = []
+    for application in applications:
+        if application["status"] == "new":
+            keyboard.append(
+                [
+                    InlineKeyboardButton(
+                        text=f"Підтвердити #{application['id']}",
+                        callback_data=f"admin_confirm:{application['id']}",
+                    ),
+                    InlineKeyboardButton(
+                        text=f"Скасувати #{application['id']}",
+                        callback_data=f"admin_cancel:{application['id']}",
+                    ),
+                ]
+            )
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 

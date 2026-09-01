@@ -2,11 +2,11 @@ from aiogram.fsm.state import State, StatesGroup
 
 
 class BookingForm(StatesGroup):
-    name = State()
     service = State()
     schedule_group = State()
     date = State()
     time = State()
+    name = State()
     contact = State()
     confirmation = State()
 

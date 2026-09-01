@@ -271,6 +271,20 @@ class Database:
             row = await cursor.fetchone()
             return dict(row) if row else None
 
+    async def get_recent_applications(self, limit: int = 10) -> list[dict]:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                """
+                SELECT *
+                FROM applications
+                ORDER BY created_at DESC
+                LIMIT ?
+                """,
+                (limit,),
+            )
+            return [dict(row) for row in await cursor.fetchall()]
+
     async def update_status(self, application_id: int, status: str) -> dict | None:
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row

@@ -7,10 +7,11 @@ from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, FSInputFile, Message
 
-from data import CONTACTS, MASTER_INFO, PORTFOLIO_PHOTOS
+from data import CONTACTS, PORTFOLIO_PHOTOS
 from database import Database
 from keyboards import (
     admin_application_keyboard,
+    admin_application_list_keyboard,
     admin_menu_keyboard,
     admin_slots_keyboard,
     application_summary_keyboard,
@@ -22,7 +23,14 @@ from keyboards import (
     service_choice_keyboard,
 )
 from states import AdminSlotForm, BookingForm
-from texts import admin_application_text, application_summary, booking_services_text, format_selected_services, services_text
+from texts import (
+    admin_application_text,
+    admin_applications_text,
+    application_summary,
+    booking_services_text,
+    format_selected_services,
+    services_text,
+)
 
 
 router = Router()
@@ -75,7 +83,7 @@ def parse_times(text: str) -> list[str]:
 async def start(message: Message, state: FSMContext) -> None:
     await state.clear()
     await message.answer(
-        "Вітаю! Тут можна швидко переглянути роботи, ціни та залишити заявку на запис.",
+        "Вітаю! Тут можна переглянути послуги, роботи та залишити заявку на запис.",
         reply_markup=main_menu(),
     )
 
@@ -94,15 +102,15 @@ async def admin_panel(message: Message, state: FSMContext, admin_id: int) -> Non
     )
 
 
-@router.message(F.text == "Інфо")
+@router.message(F.text.in_({"Контакти", "Інфо"}))
 async def show_info(message: Message) -> None:
-    await message.answer(f"{MASTER_INFO}\n\n{CONTACTS}", reply_markup=main_menu())
+    await message.answer(CONTACTS, reply_markup=main_menu())
 
 
 @router.message(F.text == "Послуги")
 async def show_services(message: Message) -> None:
     await message.answer(
-        f"{services_text()}\n\nЩоб залишити заявку, натисніть «Записатися».",
+        f"{services_text()}\n\nДля заявки натисніть «Записатися».",
         reply_markup=main_menu(),
     )
 
@@ -128,28 +136,18 @@ async def show_portfolio(message: Message) -> None:
 
 @router.message(F.text == "Записатися")
 async def booking_start(message: Message, state: FSMContext) -> None:
-    await state.set_state(BookingForm.name)
-    await message.answer("Як вас звати?", reply_markup=cancel_keyboard())
+    await state.set_state(BookingForm.service)
+    await state.update_data(service_ids=[])
+    await message.answer(
+        booking_services_text([]),
+        reply_markup=service_choice_keyboard([]),
+    )
 
 
 @router.message(F.text == "Скасувати")
 async def cancel(message: Message, state: FSMContext) -> None:
     await state.clear()
     await message.answer("Дію скасовано.", reply_markup=main_menu())
-
-
-@router.message(BookingForm.name)
-async def booking_name(message: Message, state: FSMContext) -> None:
-    if not message.text or len(message.text.strip()) < 2:
-        await message.answer("Будь ласка, введіть ім'я.")
-        return
-
-    await state.update_data(name=message.text.strip(), service_ids=[])
-    await state.set_state(BookingForm.service)
-    await message.answer(
-        booking_services_text([]),
-        reply_markup=service_choice_keyboard([]),
-    )
 
 
 @router.callback_query(BookingForm.service, F.data.startswith("service_toggle:"))
@@ -183,7 +181,7 @@ async def finish_service_choice(callback: CallbackQuery, state: FSMContext, db: 
     groups = await db.get_schedule_groups()
     await state.set_state(BookingForm.schedule_group)
     await callback.message.answer(
-        "Оберіть адресу або майстра.",
+        "Де записатися?",
         reply_markup=schedule_group_keyboard(groups, "book_group"),
     )
     await callback.answer()
@@ -245,9 +243,20 @@ async def choose_time(callback: CallbackQuery, state: FSMContext, db: Database) 
         return
 
     await state.update_data(slot_id=slot_id, slot_time=slot["slot_time"])
-    await state.set_state(BookingForm.contact)
-    await callback.message.answer("Залиште телефон або Telegram username.", reply_markup=cancel_keyboard())
+    await state.set_state(BookingForm.name)
+    await callback.message.answer("Як вас звати?", reply_markup=cancel_keyboard())
     await callback.answer()
+
+
+@router.message(BookingForm.name)
+async def booking_name(message: Message, state: FSMContext) -> None:
+    if not message.text or len(message.text.strip()) < 2:
+        await message.answer("Будь ласка, введіть ім'я.")
+        return
+
+    await state.update_data(name=message.text.strip())
+    await state.set_state(BookingForm.contact)
+    await message.answer("Залиште телефон або Telegram username.", reply_markup=cancel_keyboard())
 
 
 @router.message(BookingForm.contact)
@@ -267,8 +276,12 @@ async def booking_contact(message: Message, state: FSMContext) -> None:
 
 @router.callback_query(F.data == "client_change")
 async def client_change(callback: CallbackQuery, state: FSMContext) -> None:
-    await state.set_state(BookingForm.name)
-    await callback.message.answer("Заповнимо заявку ще раз. Як вас звати?", reply_markup=cancel_keyboard())
+    await state.set_state(BookingForm.service)
+    await state.update_data(service_ids=[])
+    await callback.message.answer(
+        "Заповнимо заявку ще раз. Оберіть послуги.",
+        reply_markup=service_choice_keyboard([]),
+    )
     await callback.answer()
 
 
@@ -412,6 +425,20 @@ async def admin_list_slots(callback: CallbackQuery, db: Database, admin_id: int)
         )
 
     await callback.message.answer("\n".join(lines), reply_markup=admin_slots_keyboard(slots))
+    await callback.answer()
+
+
+@router.callback_query(F.data == "admin_list_applications")
+async def admin_list_applications(callback: CallbackQuery, db: Database, admin_id: int) -> None:
+    if not is_admin(callback.from_user.id, admin_id):
+        await callback.answer("Недостатньо прав.", show_alert=True)
+        return
+
+    applications = await db.get_recent_applications()
+    await callback.message.answer(
+        admin_applications_text(applications),
+        reply_markup=admin_application_list_keyboard(applications),
+    )
     await callback.answer()
 
 
