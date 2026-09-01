@@ -1,7 +1,16 @@
 from html import escape
 
 from data import SERVICES
-from keyboards import format_date, format_date_short
+
+
+def format_date(value: str) -> str:
+    year, month, day = value.split("-")
+    return f"{day}.{month}.{year}"
+
+
+def format_date_short(value: str) -> str:
+    _, month, day = value.split("-")
+    return f"{day}.{month}"
 
 
 def get_service(service_id: str) -> dict | None:
