@@ -65,10 +65,16 @@ python main.py
 
 ## Сайт
 
-Открыть:
+Локально после запуска бота:
 
 ```text
-site/index.html
+http://localhost:8000/
+```
+
+На Railway:
+
+```text
+https://your-domain.up.railway.app/
 ```
 
 Менять данные:
@@ -101,6 +107,13 @@ https://your-domain.up.railway.app/miniapp
 
 Этот адрес нужно указать в `MINI_APP_URL`.
 
+Схема адресов на сервере:
+
+```text
+/        сайт-визитка
+/miniapp Telegram Mini App для записи
+```
+
 ## Основные файлы
 
 - `main.py` — запуск бота;
@@ -108,7 +121,7 @@ https://your-domain.up.railway.app/miniapp
 - `database.py` — SQLite;
 - `keyboards.py` — кнопка Mini App и кнопки подтверждения заявки;
 - `data.py` — данные бота;
-- `webapp.py` — API и сервер Mini App;
+- `webapp.py` — API, сайт и сервер Mini App;
 - `miniapp/` — интерфейс записи внутри Telegram;
 - `site/` — сайт-визитка.
 

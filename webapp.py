@@ -15,6 +15,7 @@ from texts import admin_application_text
 
 BASE_DIR = Path(__file__).resolve().parent
 MINIAPP_DIR = BASE_DIR / "miniapp"
+SITE_DIR = BASE_DIR / "site"
 
 
 def _service_names(service_ids: list[str]) -> str:
@@ -57,6 +58,10 @@ def _get_user_from_request(request: web.Request, required: bool = True) -> dict 
 
 async def miniapp_page(_: web.Request) -> web.FileResponse:
     return web.FileResponse(MINIAPP_DIR / "index.html")
+
+
+async def site_page(_: web.Request) -> web.FileResponse:
+    return web.FileResponse(SITE_DIR / "index.html")
 
 
 async def api_bootstrap(request: web.Request) -> web.Response:
@@ -208,7 +213,7 @@ def create_web_app(db: Database, bot: Bot, bot_token: str, admin_id: int) -> web
     app["bot_token"] = bot_token
     app["admin_id"] = admin_id
 
-    app.router.add_get("/", miniapp_page)
+    app.router.add_get("/", site_page)
     app.router.add_get("/miniapp", miniapp_page)
     app.router.add_get("/miniapp/", miniapp_page)
     app.router.add_get("/api/bootstrap", api_bootstrap)
@@ -221,4 +226,5 @@ def create_web_app(db: Database, bot: Bot, bot_token: str, admin_id: int) -> web
     app.router.add_get("/api/admin/applications", api_admin_applications)
     app.router.add_patch("/api/admin/applications/{application_id}", api_admin_update_application)
     app.router.add_static("/miniapp/static", MINIAPP_DIR, show_index=False)
+    app.router.add_static("/", SITE_DIR, show_index=False)
     return app
