@@ -7,6 +7,15 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+def normalize_mini_app_url(value: str) -> str:
+    url = value.strip().rstrip("/")
+    if not url:
+        return ""
+    if url.endswith("/miniapp"):
+        return url
+    return f"{url}/miniapp"
+
+
 @dataclass(frozen=True)
 class Config:
     bot_token: str
@@ -33,6 +42,8 @@ def load_config() -> Config:
 
     if not mini_app_url and railway_domain:
         mini_app_url = f"https://{railway_domain}/miniapp"
+    else:
+        mini_app_url = normalize_mini_app_url(mini_app_url)
 
     return Config(
         bot_token=token,
