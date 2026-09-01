@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 
 from data import SERVICES
@@ -25,9 +27,9 @@ def cancel_keyboard() -> ReplyKeyboardMarkup:
 def admin_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Додати вільні вікна", callback_data="admin_add_slots")],
-            [InlineKeyboardButton(text="Переглянути / редагувати вікна", callback_data="admin_list_slots")],
-            [InlineKeyboardButton(text="Переглянути заявки", callback_data="admin_list_applications")],
+            [InlineKeyboardButton(text="➕ Додати вікна", callback_data="admin_add_slots")],
+            [InlineKeyboardButton(text="📅 Вільні вікна", callback_data="admin_list_slots")],
+            [InlineKeyboardButton(text="📝 Заявки", callback_data="admin_list_applications")],
         ]
     )
 
@@ -37,6 +39,47 @@ def schedule_group_keyboard(groups: list[dict], prefix: str) -> InlineKeyboardMa
         inline_keyboard=[
             [InlineKeyboardButton(text=group["name"], callback_data=f"{prefix}:{group['id']}")]
             for group in groups
+        ]
+    )
+
+
+def admin_date_keyboard() -> InlineKeyboardMarkup:
+    today = datetime.now().date()
+    options = [
+        ("Сьогодні", today),
+        ("Завтра", today + timedelta(days=1)),
+        ("+2 дні", today + timedelta(days=2)),
+        ("+3 дні", today + timedelta(days=3)),
+    ]
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text=label, callback_data=f"admin_date:{date.isoformat()}")
+                for label, date in options[:2]
+            ],
+            [
+                InlineKeyboardButton(text=label, callback_data=f"admin_date:{date.isoformat()}")
+                for label, date in options[2:]
+            ],
+            [InlineKeyboardButton(text="Ввести дату вручну", callback_data="admin_date_manual")],
+            [InlineKeyboardButton(text="Скасувати", callback_data="client_cancel")],
+        ]
+    )
+
+
+def admin_time_presets_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="Ранок", callback_data="admin_times:morning"),
+                InlineKeyboardButton(text="День", callback_data="admin_times:day"),
+            ],
+            [
+                InlineKeyboardButton(text="Вечір", callback_data="admin_times:evening"),
+                InlineKeyboardButton(text="Весь день", callback_data="admin_times:all"),
+            ],
+            [InlineKeyboardButton(text="Ввести час вручну", callback_data="admin_times_manual")],
+            [InlineKeyboardButton(text="Скасувати", callback_data="client_cancel")],
         ]
     )
 
@@ -112,14 +155,14 @@ def admin_slots_keyboard(slots: list[dict]) -> InlineKeyboardMarkup:
     keyboard = []
     for slot in slots:
         if slot["status"] == "free":
-            label = f"{format_date(slot['slot_date'])} {slot['slot_time']} · {slot['group_name']}"
+            label = f"{format_date_short(slot['slot_date'])} {slot['slot_time']} · {slot['group_name']}"
             keyboard.append(
                 [
-                    InlineKeyboardButton(text=f"✏️ {label}", callback_data=f"admin_edit_slot:{slot['id']}"),
-                    InlineKeyboardButton(text="🗑", callback_data=f"admin_delete_slot:{slot['id']}"),
+                    InlineKeyboardButton(text=label, callback_data=f"admin_edit_slot:{slot['id']}"),
+                    InlineKeyboardButton(text="Видалити", callback_data=f"admin_delete_slot:{slot['id']}"),
                 ]
             )
-    keyboard.append([InlineKeyboardButton(text="Додати вікна", callback_data="admin_add_slots")])
+    keyboard.append([InlineKeyboardButton(text="➕ Додати вікна", callback_data="admin_add_slots")])
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
@@ -145,3 +188,8 @@ def admin_application_list_keyboard(applications: list[dict]) -> InlineKeyboardM
 def format_date(value: str) -> str:
     year, month, day = value.split("-")
     return f"{day}.{month}.{year}"
+
+
+def format_date_short(value: str) -> str:
+    _, month, day = value.split("-")
+    return f"{day}.{month}"

@@ -1,7 +1,7 @@
 from html import escape
 
 from data import SERVICES
-from keyboards import format_date
+from keyboards import format_date, format_date_short
 
 
 def get_service(service_id: str) -> dict | None:
@@ -81,4 +81,28 @@ def admin_applications_text(applications: list[dict]) -> str:
         )
         lines.append(f"{escape(item['service'])}")
         lines.append("")
+    return "\n".join(lines).strip()
+
+
+def admin_slots_text(slots: list[dict]) -> str:
+    if not slots:
+        return "Вільних вікон поки немає."
+
+    status_names = {"free": "вільно", "blocked": "очікує", "booked": "записано"}
+    grouped: dict[str, dict[str, list[dict]]] = {}
+    for slot in slots:
+        grouped.setdefault(slot["group_name"], {}).setdefault(slot["slot_date"], []).append(slot)
+
+    lines = ["📅 <b>Вільні вікна</b>", ""]
+    for group_name, dates in grouped.items():
+        lines.append(f"<b>{escape(group_name)}</b>")
+        for slot_date, day_slots in dates.items():
+            time_items = [
+                f"{escape(slot['slot_time'])} ({status_names.get(slot['status'], slot['status'])})"
+                for slot in day_slots
+            ]
+            lines.append(f"• {format_date_short(slot_date)}: {', '.join(time_items)}")
+        lines.append("")
+
+    lines.append("Кнопки нижче показані тільки для вільних вікон: натисніть час, щоб змінити, або «Видалити».")
     return "\n".join(lines).strip()

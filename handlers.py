@@ -10,14 +10,17 @@ from aiogram.types import CallbackQuery, FSInputFile, Message
 from data import CONTACTS, PORTFOLIO_PHOTOS
 from database import Database
 from keyboards import (
+    admin_date_keyboard,
     admin_application_keyboard,
     admin_application_list_keyboard,
     admin_menu_keyboard,
     admin_slots_keyboard,
+    admin_time_presets_keyboard,
     application_summary_keyboard,
     available_dates_keyboard,
     available_times_keyboard,
     cancel_keyboard,
+    format_date,
     main_menu,
     schedule_group_keyboard,
     service_choice_keyboard,
@@ -26,6 +29,7 @@ from states import AdminSlotForm, BookingForm
 from texts import (
     admin_application_text,
     admin_applications_text,
+    admin_slots_text,
     application_summary,
     booking_services_text,
     format_selected_services,
@@ -79,6 +83,27 @@ def parse_times(text: str) -> list[str]:
     return times
 
 
+TIME_PRESETS = {
+    "morning": ["09:00", "10:00", "11:00"],
+    "day": ["12:00", "13:00", "14:00", "15:00"],
+    "evening": ["16:00", "17:00", "18:00"],
+    "all": ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"],
+}
+
+
+async def finish_admin_slots_creation(message: Message, state: FSMContext, db: Database, times: list[str]) -> None:
+    data = await state.get_data()
+    created = await db.add_slots(data["admin_group_id"], data["admin_slot_date"], times)
+    await state.clear()
+    await message.answer(
+        f"Готово. Додано вікон: <b>{created}</b>.\n"
+        f"Дата: <b>{format_date(data['admin_slot_date'])}</b>\n"
+        f"Графік: <b>{data['admin_group_name']}</b>\n"
+        f"Час: <b>{', '.join(times)}</b>",
+        reply_markup=main_menu(),
+    )
+
+
 @router.message(CommandStart())
 async def start(message: Message, state: FSMContext) -> None:
     await state.clear()
@@ -97,7 +122,7 @@ async def admin_panel(message: Message, state: FSMContext, admin_id: int) -> Non
 
     await message.answer(
         "⚙️ <b>Адмін-панель</b>\n\n"
-        "Тут можна додати вільні вікна або видалити ті, які ще не зайняті.",
+        "Оберіть дію.",
         reply_markup=admin_menu_keyboard(),
     )
 
@@ -363,7 +388,36 @@ async def admin_choose_group(callback: CallbackQuery, state: FSMContext, db: Dat
 
     await state.update_data(admin_group_id=group_id, admin_group_name=group["name"])
     await state.set_state(AdminSlotForm.date)
-    await callback.message.answer("Напишіть дату для вільних вікон. Наприклад: 25.08 або 25.08.2026")
+    await callback.message.answer(
+        "Оберіть дату або введіть її вручну.",
+        reply_markup=admin_date_keyboard(),
+    )
+    await callback.answer()
+
+
+@router.callback_query(AdminSlotForm.date, F.data.startswith("admin_date:"))
+async def admin_choose_quick_date(callback: CallbackQuery, state: FSMContext, admin_id: int) -> None:
+    if not is_admin(callback.from_user.id, admin_id):
+        await callback.answer("Недостатньо прав.", show_alert=True)
+        return
+
+    slot_date = callback.data.split(":", 1)[1]
+    await state.update_data(admin_slot_date=slot_date)
+    await state.set_state(AdminSlotForm.times)
+    await callback.message.answer(
+        "Оберіть готовий набір часу або введіть свій.",
+        reply_markup=admin_time_presets_keyboard(),
+    )
+    await callback.answer()
+
+
+@router.callback_query(AdminSlotForm.date, F.data == "admin_date_manual")
+async def admin_choose_manual_date(callback: CallbackQuery, admin_id: int) -> None:
+    if not is_admin(callback.from_user.id, admin_id):
+        await callback.answer("Недостатньо прав.", show_alert=True)
+        return
+
+    await callback.message.answer("Напишіть дату. Наприклад: 25.08 або 25.08.2026")
     await callback.answer()
 
 
@@ -380,7 +434,36 @@ async def admin_slot_date(message: Message, state: FSMContext, admin_id: int) ->
 
     await state.update_data(admin_slot_date=slot_date)
     await state.set_state(AdminSlotForm.times)
-    await message.answer("Напишіть вільний час через кому або пробіл. Наприклад: 10:00, 12:30, 15:00")
+    await message.answer(
+        "Оберіть готовий набір часу або введіть свій.",
+        reply_markup=admin_time_presets_keyboard(),
+    )
+
+
+@router.callback_query(AdminSlotForm.times, F.data.startswith("admin_times:"))
+async def admin_choose_time_preset(callback: CallbackQuery, state: FSMContext, db: Database, admin_id: int) -> None:
+    if not is_admin(callback.from_user.id, admin_id):
+        await callback.answer("Недостатньо прав.", show_alert=True)
+        return
+
+    preset = callback.data.split(":", 1)[1]
+    times = TIME_PRESETS.get(preset, [])
+    if not times:
+        await callback.answer("Набір часу не знайдено.", show_alert=True)
+        return
+
+    await finish_admin_slots_creation(callback.message, state, db, times)
+    await callback.answer()
+
+
+@router.callback_query(AdminSlotForm.times, F.data == "admin_times_manual")
+async def admin_choose_manual_times(callback: CallbackQuery, admin_id: int) -> None:
+    if not is_admin(callback.from_user.id, admin_id):
+        await callback.answer("Недостатньо прав.", show_alert=True)
+        return
+
+    await callback.message.answer("Напишіть час через кому або пробіл. Наприклад: 10:00, 12:30, 15:00")
+    await callback.answer()
 
 
 @router.message(AdminSlotForm.times)
@@ -394,14 +477,7 @@ async def admin_slot_times(message: Message, state: FSMContext, db: Database, ad
         await message.answer("Не бачу часу. Приклад: 10:00, 12:30, 15:00")
         return
 
-    data = await state.get_data()
-    created = await db.add_slots(data["admin_group_id"], data["admin_slot_date"], times)
-    await state.clear()
-    await message.answer(
-        f"Готово. Додано вільних вікон: <b>{created}</b>.\n"
-        "Якщо якийсь час вже існував, бот його не дублював.",
-        reply_markup=main_menu(),
-    )
+    await finish_admin_slots_creation(message, state, db, times)
 
 
 @router.callback_query(F.data == "admin_list_slots")
@@ -411,20 +487,7 @@ async def admin_list_slots(callback: CallbackQuery, db: Database, admin_id: int)
         return
 
     slots = await db.get_upcoming_slots()
-    if not slots:
-        await callback.message.answer("Вільних вікон поки немає.", reply_markup=admin_menu_keyboard())
-        await callback.answer()
-        return
-
-    lines = ["🗓 <b>Найближчі вікна</b>", ""]
-    status_names = {"free": "вільно", "blocked": "очікує рішення", "booked": "підтверджено"}
-    for slot in slots:
-        lines.append(
-            f"• {slot['slot_date']} {slot['slot_time']} · {slot['group_name']} · "
-            f"{status_names.get(slot['status'], slot['status'])}"
-        )
-
-    await callback.message.answer("\n".join(lines), reply_markup=admin_slots_keyboard(slots))
+    await callback.message.answer(admin_slots_text(slots), reply_markup=admin_slots_keyboard(slots))
     await callback.answer()
 
 
