@@ -27,6 +27,15 @@ function formatDate(value) {
   return `${day}.${month}.${year}`;
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 function setStatus(text) {
   $("#status").textContent = text;
 }
@@ -36,8 +45,8 @@ function renderServices() {
     .map(
       (service) => `
         <button class="card" type="button" data-service="${service.id}">
-          <strong>${service.name}</strong>
-          <span>${service.price}</span>
+          <strong>${escapeHtml(service.name)}</strong>
+          <span>${escapeHtml(service.price)}</span>
         </button>
       `
     )
@@ -55,9 +64,11 @@ function renderServices() {
 
 function renderGroups() {
   $("#groups").innerHTML = state.groups
-    .map((group) => `<button class="chip" type="button" data-group="${group.id}">${group.name}</button>`)
+    .map((group) => `<button class="chip" type="button" data-group="${escapeHtml(group.id)}">${escapeHtml(group.name)}</button>`)
     .join("");
-  $("#adminGroup").innerHTML = state.groups.map((group) => `<option value="${group.id}">${group.name}</option>`).join("");
+  $("#adminGroup").innerHTML = state.groups
+    .map((group) => `<option value="${escapeHtml(group.id)}">${escapeHtml(group.name)}</option>`)
+    .join("");
 
   document.querySelectorAll("[data-group]").forEach((button) => {
     button.addEventListener("click", async () => {
@@ -157,7 +168,7 @@ async function loadAdminSlots() {
     .map(
       (slot) => `
         <div class="slot-item">
-          <span>${slot.group_name} · ${formatDate(slot.slot_date)} · ${slot.slot_time}</span>
+          <span>${escapeHtml(slot.group_name)} · ${formatDate(slot.slot_date)} · ${escapeHtml(slot.slot_time)}</span>
           <button type="button" data-delete-slot="${slot.id}">Видалити</button>
         </div>
       `
@@ -168,6 +179,64 @@ async function loadAdminSlots() {
     button.addEventListener("click", async () => {
       await request(`/api/admin/slots/${button.dataset.deleteSlot}`, { method: "DELETE" });
       await loadAdminSlots();
+    });
+  });
+}
+
+function statusLabel(status) {
+  const labels = {
+    new: "Очікує",
+    confirmed: "Підтверджено",
+    cancelled: "Скасовано",
+  };
+  return labels[status] || status;
+}
+
+async function loadAdminApplications() {
+  const response = await request("/api/admin/applications");
+  if (!response.ok) return;
+  const data = await response.json();
+
+  if (!data.applications.length) {
+    $("#adminApplications").innerHTML = "<p class='status'>Заявок поки немає.</p>";
+    return;
+  }
+
+  $("#adminApplications").innerHTML = data.applications
+    .map((item) => {
+      const actions =
+        item.status === "new"
+          ? `
+            <div class="item-actions">
+              <button type="button" data-application-action="confirmed" data-application-id="${item.id}">Підтвердити</button>
+              <button type="button" data-application-action="cancelled" data-application-id="${item.id}">Скасувати</button>
+            </div>
+          `
+          : "";
+
+      return `
+        <div class="application-item">
+          <div>
+            <strong>#${item.id} · ${escapeHtml(item.client_name)} · ${statusLabel(item.status)}</strong>
+            <span>${formatDate(item.desired_date)} · ${escapeHtml(item.desired_time)} · ${escapeHtml(item.schedule_group || "")}</span>
+            <p>${escapeHtml(item.service)}</p>
+            <p>${escapeHtml(item.contact)}</p>
+          </div>
+          ${actions}
+        </div>
+      `;
+    })
+    .join("");
+
+  document.querySelectorAll("[data-application-action]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      await request(`/api/admin/applications/${button.dataset.applicationId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: button.dataset.applicationAction }),
+      });
+      await loadAdminApplications();
+      await loadAdminSlots();
+      if (state.groupId) await loadDates();
     });
   });
 }
@@ -184,6 +253,7 @@ async function addAdminSlots() {
   });
   $("#adminTimes").value = "";
   await loadAdminSlots();
+  await loadAdminApplications();
   if (state.groupId) await loadDates();
 }
 
@@ -201,6 +271,7 @@ async function init() {
 
   if (data.is_admin) {
     $("#adminPanel").classList.remove("hidden");
+    await loadAdminApplications();
     await loadAdminSlots();
   }
 }

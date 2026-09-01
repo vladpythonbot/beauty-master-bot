@@ -192,13 +192,20 @@ select {
   gap: 10px;
 }
 
-.slot-list {
+.admin-title {
+  margin: 18px 0 10px;
+  font-size: 16px;
+}
+
+.slot-list,
+.application-list {
   display: grid;
   gap: 8px;
   margin-top: 14px;
 }
 
-.slot-item {
+.slot-item,
+.application-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -208,7 +215,29 @@ select {
   border-radius: 14px;
 }
 
-.slot-item button {
+.application-item {
+  align-items: stretch;
+  flex-direction: column;
+}
+
+.application-item strong,
+.application-item span {
+  display: block;
+}
+
+.application-item p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.item-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.slot-item button,
+.item-actions button {
   border: 0;
   border-radius: 10px;
   background: #f4e6eb;
@@ -216,6 +245,11 @@ select {
   cursor: pointer;
   font-weight: 800;
   padding: 8px 10px;
+}
+
+.item-actions button:first-child {
+  background: #e6f2ea;
+  color: #247343;
 }
 
 @media (min-width: 640px) {

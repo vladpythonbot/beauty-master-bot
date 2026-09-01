@@ -143,6 +143,38 @@ async def api_admin_slots(request: web.Request) -> web.Response:
     return web.json_response({"slots": slots})
 
 
+async def api_admin_applications(request: web.Request) -> web.Response:
+    user = _get_user_from_request(request)
+    if int(user["id"]) != request.app["admin_id"]:
+        raise web.HTTPForbidden(text="Admin only")
+    applications = await request.app["db"].get_recent_applications(limit=30)
+    return web.json_response({"applications": applications})
+
+
+async def api_admin_update_application(request: web.Request) -> web.Response:
+    user = _get_user_from_request(request)
+    if int(user["id"]) != request.app["admin_id"]:
+        raise web.HTTPForbidden(text="Admin only")
+
+    application_id = int(request.match_info["application_id"])
+    payload = await request.json()
+    status = payload.get("status")
+    if status not in {"confirmed", "cancelled"}:
+        raise web.HTTPBadRequest(text="status must be confirmed or cancelled")
+
+    application = await request.app["db"].update_status(application_id, status)
+    if not application:
+        raise web.HTTPNotFound(text="Application not found")
+
+    if status == "confirmed":
+        text = "✅ Ваш запис підтверджено. Майстер очікує вас у зазначений час."
+    else:
+        text = "❌ На жаль, заявку скасовано. Обраний час знову доступний для запису."
+
+    await request.app["bot"].send_message(application["user_id"], text)
+    return web.json_response({"ok": True, "application": application})
+
+
 async def api_admin_add_slots(request: web.Request) -> web.Response:
     user = _get_user_from_request(request)
     if int(user["id"]) != request.app["admin_id"]:
@@ -186,5 +218,7 @@ def create_web_app(db: Database, bot: Bot, bot_token: str, admin_id: int) -> web
     app.router.add_get("/api/admin/slots", api_admin_slots)
     app.router.add_post("/api/admin/slots", api_admin_add_slots)
     app.router.add_delete("/api/admin/slots/{slot_id}", api_admin_delete_slot)
+    app.router.add_get("/api/admin/applications", api_admin_applications)
+    app.router.add_patch("/api/admin/applications/{application_id}", api_admin_update_application)
     app.router.add_static("/miniapp/static", MINIAPP_DIR, show_index=False)
     return app
