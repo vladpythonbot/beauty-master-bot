@@ -5,9 +5,13 @@ const state = {
   services: [],
   groups: [],
   selectedServices: new Set(),
+  selectedAdminTimes: new Set(),
   groupId: "",
   slotId: 0,
+  isAdmin: false,
 };
+
+const DEFAULT_TIMES = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"];
 
 const $ = (selector) => document.querySelector(selector);
 
@@ -38,6 +42,34 @@ function escapeHtml(value) {
 
 function setStatus(text) {
   $("#status").textContent = text;
+}
+
+function setAdminStatus(text) {
+  $("#adminStatus").textContent = text;
+}
+
+function setMode(mode) {
+  const isAdminMode = mode === "admin";
+  $("#bookingView").classList.toggle("hidden", isAdminMode);
+  $("#adminView").classList.toggle("hidden", !isAdminMode);
+  document.querySelectorAll("[data-mode]").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.mode === mode);
+  });
+}
+
+function renderQuickTimes() {
+  $("#quickTimes").innerHTML = DEFAULT_TIMES.map(
+    (time) => `<button class="quick-time" type="button" data-quick-time="${time}">${time}</button>`
+  ).join("");
+
+  document.querySelectorAll("[data-quick-time]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const time = button.dataset.quickTime;
+      if (state.selectedAdminTimes.has(time)) state.selectedAdminTimes.delete(time);
+      else state.selectedAdminTimes.add(time);
+      button.classList.toggle("is-active", state.selectedAdminTimes.has(time));
+    });
+  });
 }
 
 function renderServices() {
@@ -163,8 +195,15 @@ async function loadAdminSlots() {
   const response = await request("/api/admin/slots");
   if (!response.ok) return;
   const data = await response.json();
-  $("#adminSlots").innerHTML = data.slots
-    .filter((slot) => slot.status === "free")
+  const freeSlots = data.slots.filter((slot) => slot.status === "free");
+  $("#statFree").textContent = freeSlots.length;
+
+  if (!freeSlots.length) {
+    $("#adminSlots").innerHTML = "<p class='status'>Вільних вікон поки немає.</p>";
+    return;
+  }
+
+  $("#adminSlots").innerHTML = freeSlots
     .map(
       (slot) => `
         <div class="slot-item">
@@ -177,8 +216,10 @@ async function loadAdminSlots() {
 
   document.querySelectorAll("[data-delete-slot]").forEach((button) => {
     button.addEventListener("click", async () => {
+      setAdminStatus("Видаляю вікно...");
       await request(`/api/admin/slots/${button.dataset.deleteSlot}`, { method: "DELETE" });
       await loadAdminSlots();
+      setAdminStatus("Вікно видалено.");
     });
   });
 }
@@ -199,8 +240,11 @@ async function loadAdminApplications() {
 
   if (!data.applications.length) {
     $("#adminApplications").innerHTML = "<p class='status'>Заявок поки немає.</p>";
+    $("#statNew").textContent = "0";
     return;
   }
+
+  $("#statNew").textContent = data.applications.filter((item) => item.status === "new").length;
 
   $("#adminApplications").innerHTML = data.applications
     .map((item) => {
@@ -218,7 +262,11 @@ async function loadAdminApplications() {
         <div class="application-item">
           <div>
             <strong>#${item.id} · ${escapeHtml(item.client_name)} · ${statusLabel(item.status)}</strong>
-            <span>${formatDate(item.desired_date)} · ${escapeHtml(item.desired_time)} · ${escapeHtml(item.schedule_group || "")}</span>
+            <div class="application-meta">
+              <span>${formatDate(item.desired_date)}</span>
+              <span>${escapeHtml(item.desired_time)}</span>
+              <span>${escapeHtml(item.schedule_group || "")}</span>
+            </div>
             <p>${escapeHtml(item.service)}</p>
             <p>${escapeHtml(item.contact)}</p>
           </div>
@@ -230,6 +278,7 @@ async function loadAdminApplications() {
 
   document.querySelectorAll("[data-application-action]").forEach((button) => {
     button.addEventListener("click", async () => {
+      setAdminStatus("Оновлюю заявку...");
       await request(`/api/admin/applications/${button.dataset.applicationId}`, {
         method: "PATCH",
         body: JSON.stringify({ status: button.dataset.applicationAction }),
@@ -237,6 +286,7 @@ async function loadAdminApplications() {
       await loadAdminApplications();
       await loadAdminSlots();
       if (state.groupId) await loadDates();
+      setAdminStatus("Готово.");
     });
   });
 }
@@ -244,17 +294,38 @@ async function loadAdminApplications() {
 async function addAdminSlots() {
   const groupId = $("#adminGroup").value;
   const slotDate = $("#adminDate").value;
-  const times = parseTimes($("#adminTimes").value);
-  if (!groupId || !slotDate || !times.length) return;
+  const times = [...new Set([...state.selectedAdminTimes, ...parseTimes($("#adminTimes").value)])].sort();
+  if (!groupId) return setAdminStatus("Оберіть графік.");
+  if (!slotDate) return setAdminStatus("Оберіть дату.");
+  if (!times.length) return setAdminStatus("Оберіть або введіть час.");
 
-  await request("/api/admin/slots", {
-    method: "POST",
-    body: JSON.stringify({ group_id: groupId, slot_date: slotDate, times }),
-  });
-  $("#adminTimes").value = "";
-  await loadAdminSlots();
+  $("#addSlots").disabled = true;
+  setAdminStatus("Додаю вільні вікна...");
+  try {
+    const response = await request("/api/admin/slots", {
+      method: "POST",
+      body: JSON.stringify({ group_id: groupId, slot_date: slotDate, times }),
+    });
+    if (!response.ok) return setAdminStatus("Не вдалося додати вікна.");
+
+    $("#adminTimes").value = "";
+    state.selectedAdminTimes.clear();
+    document.querySelectorAll("[data-quick-time]").forEach((button) => button.classList.remove("is-active"));
+    await loadAdminSlots();
+    await loadAdminApplications();
+    if (state.groupId) await loadDates();
+    setAdminStatus(`Додано: ${times.join(", ")}.`);
+  } finally {
+    $("#addSlots").disabled = false;
+  }
+}
+
+async function refreshAdmin() {
+  if (!state.isAdmin) return;
+  setAdminStatus("Оновлюю дані...");
   await loadAdminApplications();
-  if (state.groupId) await loadDates();
+  await loadAdminSlots();
+  setAdminStatus("Дані оновлено.");
 }
 
 async function init() {
@@ -265,17 +336,22 @@ async function init() {
   const data = await response.json();
   state.services = data.services;
   state.groups = data.groups;
+  state.isAdmin = Boolean(data.is_admin);
 
   renderServices();
   renderGroups();
+  renderQuickTimes();
 
   if (data.is_admin) {
-    $("#adminPanel").classList.remove("hidden");
-    await loadAdminApplications();
-    await loadAdminSlots();
+    $("#modeSwitch").classList.remove("hidden");
+    await refreshAdmin();
   }
 }
 
 $("#sendRequest").addEventListener("click", sendApplication);
 $("#addSlots").addEventListener("click", addAdminSlots);
+$("#refreshAdmin").addEventListener("click", refreshAdmin);
+document.querySelectorAll("[data-mode]").forEach((button) => {
+  button.addEventListener("click", () => setMode(button.dataset.mode));
+});
 init().catch(() => setStatus("Не вдалося завантажити Mini App."));

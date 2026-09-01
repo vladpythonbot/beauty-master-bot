@@ -57,7 +57,7 @@ body {
   margin-top: 12px;
   padding: 16px;
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: 8px;
   background: var(--panel);
   box-shadow: 0 16px 44px rgba(64, 45, 62, 0.08);
 }
@@ -94,7 +94,7 @@ body {
 .chip {
   width: 100%;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 8px;
   background: #fff;
   color: var(--text);
   cursor: pointer;
@@ -152,7 +152,7 @@ input,
 select {
   width: 100%;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 8px;
   background: #fff;
   color: var(--text);
   font: inherit;
@@ -163,7 +163,7 @@ select {
   width: 100%;
   margin-top: 14px;
   border: 0;
-  border-radius: 14px;
+  border-radius: 8px;
   background: var(--accent);
   color: #fff;
   cursor: pointer;
@@ -184,7 +184,7 @@ select {
 }
 
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 .admin-form {
@@ -192,9 +192,140 @@ select {
   gap: 10px;
 }
 
-.admin-title {
-  margin: 18px 0 10px;
-  font-size: 16px;
+.mode-switch {
+  position: sticky;
+  top: 8px;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin: 4px 0 14px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px);
+}
+
+.mode-switch button,
+.ghost {
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+  padding: 11px 12px;
+}
+
+.mode-switch button.is-active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.admin-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  background: #2a2029;
+  color: #fff;
+}
+
+.admin-hero p,
+.admin-hero h2,
+.admin-stats p {
+  margin: 0;
+}
+
+.admin-hero p {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 14px;
+}
+
+.admin-hero h2 {
+  margin-top: 4px;
+  font-size: 24px;
+}
+
+.ghost {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  white-space: nowrap;
+}
+
+.admin-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.admin-stats div {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.admin-stats span {
+  display: block;
+  font-size: 28px;
+  font-weight: 950;
+}
+
+.admin-stats p,
+.section-head p {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.section-head h2,
+.section-head p {
+  margin: 0;
+}
+
+.section-head h2 {
+  font-size: 18px;
+}
+
+.section-head p {
+  margin-top: 4px;
+}
+
+.quick-times {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.quick-time {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+  padding: 10px 8px;
+}
+
+.quick-time.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .slot-list,
@@ -212,7 +343,8 @@ select {
   gap: 10px;
   padding: 10px 12px;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 8px;
+  background: #fff;
 }
 
 .application-item {
@@ -231,6 +363,23 @@ select {
   font-size: 14px;
 }
 
+.application-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.application-meta span {
+  width: auto;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 900;
+  padding: 5px 8px;
+}
+
 .item-actions {
   display: flex;
   gap: 8px;
@@ -239,7 +388,7 @@ select {
 .slot-item button,
 .item-actions button {
   border: 0;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #f4e6eb;
   color: #8d3552;
   cursor: pointer;
@@ -259,5 +408,16 @@ select {
 
   .hero h1 {
     font-size: 44px;
+  }
+}
+
+@media (max-width: 420px) {
+  .quick-times {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .admin-hero {
+    align-items: stretch;
+    flex-direction: column;
   }
 }

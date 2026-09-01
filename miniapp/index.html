@@ -15,6 +15,12 @@
         <span>Оберіть послугу, дату й час. Майстер підтвердить заявку.</span>
       </header>
 
+      <nav class="mode-switch hidden" id="modeSwitch" aria-label="Режим Mini App">
+        <button class="is-active" type="button" data-mode="booking">Запис</button>
+        <button type="button" data-mode="admin">Адмін</button>
+      </nav>
+
+      <div id="bookingView">
       <section class="panel">
         <div class="step">
           <span>01</span>
@@ -56,25 +62,66 @@
         <button class="primary" id="sendRequest" type="button">Надіслати заявку</button>
         <p class="status" id="status"></p>
       </section>
+      </div>
 
-      <section class="panel admin hidden" id="adminPanel">
-        <div class="step">
-          <span>А</span>
+      <div class="hidden" id="adminView">
+      <section class="admin-hero">
+        <div>
+          <p>Керування записом</p>
           <h2>Адмін-панель</h2>
         </div>
+        <button class="ghost" id="refreshAdmin" type="button">Оновити</button>
+      </section>
 
-        <h3 class="admin-title">Заявки</h3>
-        <div class="application-list" id="adminApplications"></div>
+      <section class="admin-stats">
+        <div>
+          <span id="statNew">0</span>
+          <p>нових заявок</p>
+        </div>
+        <div>
+          <span id="statFree">0</span>
+          <p>вільних вікон</p>
+        </div>
+      </section>
 
-        <h3 class="admin-title">Вільні вікна</h3>
+      <section class="panel">
+        <div class="section-head">
+          <div>
+            <h2>Додати вікна</h2>
+            <p>Оберіть графік, дату і натисніть потрібні години.</p>
+          </div>
+        </div>
+
         <div class="admin-form">
           <select id="adminGroup"></select>
           <input id="adminDate" type="date" />
-          <input id="adminTimes" type="text" placeholder="10:00, 12:00, 15:30" />
+          <div class="quick-times" id="quickTimes"></div>
+          <input id="adminTimes" type="text" placeholder="Або свої: 10:30, 14:45" />
           <button class="primary" id="addSlots" type="button">Додати</button>
+        </div>
+        <p class="status" id="adminStatus"></p>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <div>
+            <h2>Заявки</h2>
+            <p>Нові заявки підтверджуються вручну.</p>
+          </div>
+        </div>
+        <div class="application-list" id="adminApplications"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <div>
+            <h2>Вільні вікна</h2>
+            <p>Тут видно часи, які ще доступні клієнтам.</p>
+          </div>
         </div>
         <div class="slot-list" id="adminSlots"></div>
       </section>
+      </div>
     </main>
 
     <script src="/miniapp/static/app.js"></script>
