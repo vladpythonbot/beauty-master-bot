@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Beauty Studio — запис</title>
+    <link rel="stylesheet" href="/miniapp/static/styles.css" />
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  </head>
+  <body>
+    <main class="app">
+      <header class="hero">
+        <p>Beauty Studio</p>
+        <h1>Запис на послугу</h1>
+        <span>Оберіть послугу, дату й час. Майстер підтвердить заявку.</span>
+      </header>
+
+      <section class="panel">
+        <div class="step">
+          <span>01</span>
+          <h2>Послуги</h2>
+        </div>
+        <div class="grid" id="services"></div>
+      </section>
+
+      <section class="panel">
+        <div class="step">
+          <span>02</span>
+          <h2>Місце або майстер</h2>
+        </div>
+        <div class="chips" id="groups"></div>
+      </section>
+
+      <section class="panel">
+        <div class="step">
+          <span>03</span>
+          <h2>Дата і час</h2>
+        </div>
+        <div class="chips" id="dates"></div>
+        <div class="chips times" id="times"></div>
+      </section>
+
+      <section class="panel">
+        <div class="step">
+          <span>04</span>
+          <h2>Контакти</h2>
+        </div>
+        <label>
+          Ім'я
+          <input id="clientName" type="text" autocomplete="name" placeholder="Наприклад, Анна" />
+        </label>
+        <label>
+          Телефон або Telegram
+          <input id="clientContact" type="text" autocomplete="tel" placeholder="+380... або @username" />
+        </label>
+        <button class="primary" id="sendRequest" type="button">Надіслати заявку</button>
+        <p class="status" id="status"></p>
+      </section>
+
+      <section class="panel admin hidden" id="adminPanel">
+        <div class="step">
+          <span>А</span>
+          <h2>Вільні вікна</h2>
+        </div>
+        <div class="admin-form">
+          <select id="adminGroup"></select>
+          <input id="adminDate" type="date" />
+          <input id="adminTimes" type="text" placeholder="10:00, 12:00, 15:30" />
+          <button class="primary" id="addSlots" type="button">Додати</button>
+        </div>
+        <div class="slot-list" id="adminSlots"></div>
+      </section>
+    </main>
+
+    <script src="/miniapp/static/app.js"></script>
+  </body>
+</html>

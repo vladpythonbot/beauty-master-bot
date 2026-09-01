@@ -1,14 +1,18 @@
 from datetime import datetime, timedelta
 
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, WebAppInfo
 
 from data import SERVICES
 
 
-def main_menu() -> ReplyKeyboardMarkup:
+def main_menu(mini_app_url: str = "") -> ReplyKeyboardMarkup:
+    booking_button = KeyboardButton(text="Записатися")
+    if mini_app_url:
+        booking_button = KeyboardButton(text="Записатися", web_app=WebAppInfo(url=mini_app_url))
+
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="Записатися")],
+            [booking_button],
             [KeyboardButton(text="Послуги"), KeyboardButton(text="Портфоліо")],
             [KeyboardButton(text="Контакти")],
         ],

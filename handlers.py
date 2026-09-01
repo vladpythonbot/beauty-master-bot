@@ -1,4 +1,4 @@
-from datetime import datetime
+﻿from datetime import datetime
 from pathlib import Path
 import re
 
@@ -38,9 +38,16 @@ from texts import (
 
 
 router = Router()
+MINI_APP_URL = ""
 
 
-def register_handlers(db: Database, admin_id: int) -> Router:
+def menu():
+    return main_menu(MINI_APP_URL)
+
+
+def register_handlers(db: Database, admin_id: int, mini_app_url: str = "") -> Router:
+    global MINI_APP_URL
+    MINI_APP_URL = mini_app_url
     router.message.middleware(DbMiddleware(db, admin_id))
     router.callback_query.middleware(DbMiddleware(db, admin_id))
     return router
@@ -100,7 +107,7 @@ async def finish_admin_slots_creation(message: Message, state: FSMContext, db: D
         f"Дата: <b>{format_date(data['admin_slot_date'])}</b>\n"
         f"Графік: <b>{data['admin_group_name']}</b>\n"
         f"Час: <b>{', '.join(times)}</b>",
-        reply_markup=main_menu(),
+        reply_markup=menu(),
     )
 
 
@@ -109,7 +116,7 @@ async def start(message: Message, state: FSMContext) -> None:
     await state.clear()
     await message.answer(
         "Вітаю! Тут можна переглянути послуги, роботи та залишити заявку на запис.",
-        reply_markup=main_menu(),
+        reply_markup=menu(),
     )
 
 
@@ -129,14 +136,14 @@ async def admin_panel(message: Message, state: FSMContext, admin_id: int) -> Non
 
 @router.message(F.text.in_({"Контакти", "Інфо"}))
 async def show_info(message: Message) -> None:
-    await message.answer(CONTACTS, reply_markup=main_menu())
+    await message.answer(CONTACTS, reply_markup=menu())
 
 
 @router.message(F.text == "Послуги")
 async def show_services(message: Message) -> None:
     await message.answer(
         f"{services_text()}\n\nДля заявки натисніть «Записатися».",
-        reply_markup=main_menu(),
+        reply_markup=menu(),
     )
 
 
@@ -155,7 +162,7 @@ async def show_portfolio(message: Message) -> None:
             "🖼 <b>Портфоліо</b>\n\n"
             "Додайте фотографії робіт у папку <code>assets/portfolio</code> "
             "з назвами <code>work_1.jpg</code>, <code>work_2.jpg</code>, <code>work_3.jpg</code>.",
-            reply_markup=main_menu(),
+            reply_markup=menu(),
         )
 
 
@@ -172,7 +179,7 @@ async def booking_start(message: Message, state: FSMContext) -> None:
 @router.message(F.text == "Скасувати")
 async def cancel(message: Message, state: FSMContext) -> None:
     await state.clear()
-    await message.answer("Дію скасовано.", reply_markup=main_menu())
+    await message.answer("Дію скасовано.", reply_markup=menu())
 
 
 @router.callback_query(BookingForm.service, F.data.startswith("service_toggle:"))
@@ -231,7 +238,7 @@ async def choose_group(callback: CallbackQuery, state: FSMContext, db: Database)
         await state.clear()
         await callback.message.answer(
             "На жаль, зараз немає вільних вікон для цього варіанту. Спробуйте пізніше або напишіть майстру.",
-            reply_markup=main_menu(),
+            reply_markup=menu(),
         )
         await callback.answer()
         return
@@ -313,7 +320,7 @@ async def client_change(callback: CallbackQuery, state: FSMContext) -> None:
 @router.callback_query(F.data == "client_cancel")
 async def client_cancel(callback: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
-    await callback.message.answer("Заявку скасовано.", reply_markup=main_menu())
+    await callback.message.answer("Заявку скасовано.", reply_markup=menu())
     await callback.answer()
 
 
@@ -322,7 +329,7 @@ async def client_confirm(callback: CallbackQuery, state: FSMContext, db: Databas
     data = await state.get_data()
     required_fields = {"name", "service_ids", "group_name", "slot_date", "slot_time", "slot_id", "contact"}
     if not required_fields.issubset(data) or not data["service_ids"]:
-        await callback.message.answer("Заявка неповна. Почніть запис ще раз.", reply_markup=main_menu())
+        await callback.message.answer("Заявка неповна. Почніть запис ще раз.", reply_markup=menu())
         await state.clear()
         await callback.answer()
         return
@@ -341,7 +348,7 @@ async def client_confirm(callback: CallbackQuery, state: FSMContext, db: Databas
         await state.clear()
         await callback.message.answer(
             "Цей час щойно зайняли. Будь ласка, створіть заявку ще раз і оберіть інший час.",
-            reply_markup=main_menu(),
+            reply_markup=menu(),
         )
         await callback.answer()
         return
@@ -354,7 +361,7 @@ async def client_confirm(callback: CallbackQuery, state: FSMContext, db: Databas
     await state.clear()
     await callback.message.answer(
         "Дякуємо! Заявку отримано. Обраний час тимчасово заблоковано. Майстер підтвердить запис окремим повідомленням.",
-        reply_markup=main_menu(),
+        reply_markup=menu(),
     )
     await callback.answer()
 
@@ -560,11 +567,11 @@ async def admin_edit_slot_time(message: Message, state: FSMContext, db: Database
     if not updated:
         await message.answer(
             "Не вдалося змінити вікно. Воно вже зайняте або такий час уже існує.",
-            reply_markup=main_menu(),
+            reply_markup=menu(),
         )
         return
 
-    await message.answer("Вікно оновлено.", reply_markup=main_menu())
+    await message.answer("Вікно оновлено.", reply_markup=menu())
 
 
 @router.callback_query(F.data.startswith("admin_confirm:"))
@@ -609,4 +616,5 @@ async def admin_cancel(callback: CallbackQuery, db: Database, admin_id: int) -> 
 
 @router.message()
 async def fallback(message: Message) -> None:
-    await message.answer("Оберіть пункт у меню нижче.", reply_markup=main_menu())
+    await message.answer("Оберіть пункт у меню нижче.", reply_markup=menu())
+

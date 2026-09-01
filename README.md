@@ -7,6 +7,7 @@
 - услуги и цены;
 - выбор нескольких услуг;
 - запись через свободные окна по графику, дате и времени;
+- Telegram Mini App для записи;
 - админ-панель `/admin`;
 - просмотр последних заявок в админке;
 - подтверждение или отмена заявки;
@@ -21,6 +22,8 @@
 BOT_TOKEN=your_token_here
 ADMIN_ID=123456789
 DB_PATH=beauty_bot.db
+MINI_APP_URL=https://your-domain.up.railway.app/miniapp
+PORT=8000
 ```
 
 Запуск:
@@ -31,6 +34,8 @@ python -m venv .venv
 pip install -r requirements.txt
 python main.py
 ```
+
+Если `MINI_APP_URL` задан, кнопка `Записатися` открывает Mini App. Если URL не задан, остаётся чат-сценарий записи.
 
 ## Админ-панель
 
@@ -74,6 +79,28 @@ site/data.js
 
 Там лежат название, город, услуги, цены, мастера, портфолио, контакты, Telegram, Instagram и цвет.
 
+## Mini App
+
+Файлы Mini App лежат в:
+
+```text
+miniapp/
+```
+
+Адрес локально:
+
+```text
+http://localhost:8000/miniapp
+```
+
+Для Telegram нужен публичный HTTPS-адрес, например Railway:
+
+```text
+https://your-domain.up.railway.app/miniapp
+```
+
+Этот адрес нужно указать в `MINI_APP_URL`.
+
 ## Основные файлы
 
 - `main.py` — запуск бота;
@@ -81,6 +108,8 @@ site/data.js
 - `database.py` — SQLite;
 - `keyboards.py` — кнопки;
 - `data.py` — данные бота;
+- `webapp.py` — API и сервер Mini App;
+- `miniapp/` — интерфейс записи внутри Telegram;
 - `site/` — сайт-визитка.
 
 ## Важно
