@@ -707,6 +707,7 @@ async function init() {
   renderAdminCalendar();
 
   if (data.is_admin) {
+    $("#modeSwitch").classList.remove("hidden");
     await refreshAdmin();
     setMode(initialMode);
   }
