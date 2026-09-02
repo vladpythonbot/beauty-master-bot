@@ -287,12 +287,21 @@ async def api_admin_add_slots(request: web.Request) -> web.Response:
     payload = await request.json()
     group_id = str(payload.get("group_id", "")).strip()
     slot_date = str(payload.get("slot_date", "")).strip()
+    slot_dates = [str(item).strip() for item in payload.get("slot_dates", []) if str(item).strip()]
     times = payload.get("times") or []
-    if not group_id or not slot_date or not times:
-        raise web.HTTPBadRequest(text="group_id, slot_date and times are required")
+    if slot_date and slot_date not in slot_dates:
+        slot_dates.append(slot_date)
+    if not group_id or not slot_dates or not times:
+        raise web.HTTPBadRequest(text="group_id, slot_dates and times are required")
+    if len(slot_dates) > 31:
+        raise web.HTTPBadRequest(text="too many dates")
 
-    created = await request.app["db"].add_slots(group_id, slot_date, times)
-    return web.json_response({"ok": True, "created": created})
+    valid_dates = sorted({_parse_iso_date(date_value).isoformat() for date_value in slot_dates})
+    valid_times = sorted({_format_time(_parse_time_minutes(str(time))) for time in times})
+    slots_by_date = {date_value: valid_times for date_value in valid_dates}
+    created = await request.app["db"].add_slots_bulk(group_id, slots_by_date)
+    planned = len(valid_dates) * len(valid_times)
+    return web.json_response({"ok": True, "created": created, "planned": planned})
 
 
 async def api_admin_add_slots_bulk(request: web.Request) -> web.Response:

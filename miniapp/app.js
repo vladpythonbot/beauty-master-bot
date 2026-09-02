@@ -9,6 +9,7 @@ const state = {
   selectedServices: new Set(),
   selectedAdminTimes: new Set(),
   selectedWeekdays: new Set([0, 1, 2, 3, 4]),
+  selectedAdminDates: new Set(),
   adminCalendarMonth: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   adminSelectedDate: "",
   groupId: "",
@@ -106,7 +107,12 @@ function updateAdminSelection() {
   const selectedDate = $("#adminDate")?.value || state.adminSelectedDate;
   const manualTimes = parseTimes($("#adminTimes")?.value || "").length;
   const total = new Set([...state.selectedAdminTimes, ...parseTimes($("#adminTimes")?.value || "")]).size;
-  const dateText = selectedDate ? formatDate(selectedDate) : "дата не обрана";
+  const selectedDates = [...state.selectedAdminDates].sort();
+  const dateText = selectedDates.length
+    ? `${selectedDates.length} дн. · ${selectedDates.map((date) => formatDate(date).slice(0, 5)).join(", ")}`
+    : selectedDate
+      ? formatDate(selectedDate)
+      : "дата не обрана";
   const timeText = total ? `${total} год.` : "час не обрано";
   const period = $("#schedulePeriod")?.value || "30";
   const start = $("#workStart")?.value || "09:00";
@@ -162,7 +168,7 @@ function renderAdminCalendar() {
     const isOutside = date.getMonth() !== month.getMonth();
     const isPast = iso < todayIso;
     const isToday = iso === todayIso;
-    const isActive = iso === state.adminSelectedDate;
+    const isActive = state.selectedAdminDates.has(iso);
     const count = slotCounts[iso] || 0;
 
     return `
@@ -180,7 +186,10 @@ function renderAdminCalendar() {
 
   document.querySelectorAll("[data-calendar-date]").forEach((button) => {
     button.addEventListener("click", () => {
-      state.adminSelectedDate = button.dataset.calendarDate;
+      const date = button.dataset.calendarDate;
+      if (state.selectedAdminDates.has(date)) state.selectedAdminDates.delete(date);
+      else state.selectedAdminDates.add(date);
+      state.adminSelectedDate = date;
       $("#adminDate").value = state.adminSelectedDate;
       renderAdminCalendar();
       updateAdminSelection();
@@ -547,10 +556,12 @@ async function deleteGroup(groupId) {
 
 async function addAdminSlots() {
   const groupId = $("#adminGroup").value;
+  const slotDates = [...state.selectedAdminDates].sort();
   const slotDate = $("#adminDate").value;
+  if (!slotDates.length && slotDate) slotDates.push(slotDate);
   const times = [...new Set([...state.selectedAdminTimes, ...parseTimes($("#adminTimes").value)])].sort();
   if (!groupId) return setAdminStatus("Оберіть графік.");
-  if (!slotDate) return setAdminStatus("Оберіть дату.");
+  if (!slotDates.length) return setAdminStatus("Оберіть одну або кілька дат.");
   if (!times.length) return setAdminStatus("Оберіть або введіть час.");
 
   $("#addSlots").disabled = true;
@@ -558,18 +569,19 @@ async function addAdminSlots() {
   try {
     const response = await request("/api/admin/slots", {
       method: "POST",
-      body: JSON.stringify({ group_id: groupId, slot_date: slotDate, times }),
+      body: JSON.stringify({ group_id: groupId, slot_dates: slotDates, times }),
     });
     if (!response.ok) return setAdminStatus("Не вдалося додати вікна.");
 
     $("#adminTimes").value = "";
     state.selectedAdminTimes.clear();
+    state.selectedAdminDates.clear();
     document.querySelectorAll("[data-quick-time]").forEach((button) => button.classList.remove("is-active"));
     updateAdminSelection();
     await loadAdminSlots();
     await loadAdminApplications();
     if (state.groupId) await loadDates();
-    setAdminStatus(`Додано: ${times.join(", ")}.`);
+    setAdminStatus(`Додано вікон: ${slotDates.length} дн. × ${times.length} год.`);
   } finally {
     $("#addSlots").disabled = false;
   }
@@ -651,6 +663,11 @@ $("#addSlots").addEventListener("click", addAdminSlots);
 $("#generateSlots").addEventListener("click", generateSlots);
 $("#refreshAdmin").addEventListener("click", refreshAdmin);
 $("#adminTimes").addEventListener("input", updateAdminSelection);
+$("#clearDates").addEventListener("click", () => {
+  state.selectedAdminDates.clear();
+  renderAdminCalendar();
+  updateAdminSelection();
+});
 ["schedulePeriod", "workStart", "workEnd", "slotStep"].forEach((id) => {
   $(`#${id}`).addEventListener("change", updateAdminSelection);
 });

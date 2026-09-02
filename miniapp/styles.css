@@ -296,6 +296,17 @@ select {
   white-space: nowrap;
 }
 
+.ghost-light {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+}
+
 .admin-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -435,6 +446,7 @@ select {
   border-color: var(--accent);
   background: var(--accent);
   color: #fff;
+  box-shadow: 0 10px 22px rgba(157, 100, 128, 0.24);
 }
 
 .calendar-day.is-active small {
