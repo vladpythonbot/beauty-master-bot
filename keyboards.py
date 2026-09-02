@@ -1,4 +1,4 @@
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, WebAppInfo
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 
 
 def mini_app_url_with_mode(mini_app_url: str, mode: str) -> str:
@@ -6,26 +6,22 @@ def mini_app_url_with_mode(mini_app_url: str, mode: str) -> str:
     return f"{mini_app_url}{separator}mode={mode}"
 
 
-def main_menu(mini_app_url: str = "", is_admin: bool = False) -> ReplyKeyboardMarkup:
-    booking_button = KeyboardButton(text="Відкрити Mini App")
-    if mini_app_url:
-        booking_button = KeyboardButton(text="Відкрити Mini App", web_app=WebAppInfo(url=mini_app_url))
+def main_menu(mini_app_url: str = "", is_admin: bool = False) -> InlineKeyboardMarkup | None:
+    if not mini_app_url:
+        return None
 
-    keyboard = [[booking_button]]
+    keyboard = [[InlineKeyboardButton(text="Відкрити запис", web_app=WebAppInfo(url=mini_app_url))]]
     if is_admin:
-        admin_button = KeyboardButton(text="Адмін-панель")
-        if mini_app_url:
-            admin_button = KeyboardButton(
-                text="Адмін-панель",
-                web_app=WebAppInfo(url=mini_app_url_with_mode(mini_app_url, "admin")),
-            )
-        keyboard.append([admin_button])
+        keyboard.append(
+            [
+                InlineKeyboardButton(
+                    text="Адмін-панель",
+                    web_app=WebAppInfo(url=mini_app_url_with_mode(mini_app_url, "admin")),
+                )
+            ]
+        )
 
-    return ReplyKeyboardMarkup(
-        keyboard=keyboard,
-        resize_keyboard=True,
-        input_field_placeholder="Відкрийте Mini App",
-    )
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
 def admin_application_keyboard(application_id: int) -> InlineKeyboardMarkup:

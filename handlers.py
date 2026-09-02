@@ -42,7 +42,7 @@ def is_admin(user_id: int, admin_id: int) -> bool:
 async def start(message: Message, state: FSMContext, admin_id: int) -> None:
     await state.clear()
     await message.answer(
-        "Вітаю! Для перегляду послуг, вільного часу та запису відкрийте Mini App.",
+        "Вітаю! Для перегляду послуг, вільного часу та запису натисніть кнопку під повідомленням.",
         reply_markup=menu(message.from_user.id, admin_id),
     )
 
@@ -65,7 +65,7 @@ async def admin_panel(message: Message, state: FSMContext, admin_id: int) -> Non
         return
 
     await message.answer(
-        "Відкрийте адмін-панель. Там можна додавати вільні вікна, дивитися заявки й керувати записами.",
+        "Натисніть кнопку під повідомленням, щоб відкрити адмін-панель.",
         reply_markup=menu(message.from_user.id, admin_id),
     )
 
@@ -113,6 +113,6 @@ async def admin_cancel(callback: CallbackQuery, db: Database, admin_id: int) -> 
 @router.message()
 async def fallback(message: Message, admin_id: int) -> None:
     await message.answer(
-        "Усе керування записом знаходиться в Mini App.",
+        "Усе керування записом знаходиться в Mini App. Натисніть кнопку під повідомленням.",
         reply_markup=menu(message.from_user.id, admin_id),
     )
