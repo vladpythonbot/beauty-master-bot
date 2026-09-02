@@ -120,8 +120,9 @@ function updateAdminSelection() {
   const step = $("#slotStep")?.value || "60";
   const days = state.selectedWeekdays.size;
   $("#adminSelection").textContent =
-    `Шаблон: ${period} дн. · ${days} роб. дн. · ${start}-${end} · ${step} хв\n` +
-    `Разово: ${dateText} · ${timeText}${manualTimes ? " · є ручний час" : ""}`;
+    `Буде створено: ${period} дн. · ${days} роб. дн.\n` +
+    `Час: ${start}-${end} · крок ${step} хв\n` +
+    `Разово вибрано: ${dateText} · ${timeText}${manualTimes ? " · є ручний час" : ""}`;
 }
 
 function renderWeekdays() {

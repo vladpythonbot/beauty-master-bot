@@ -113,6 +113,15 @@
             <select id="adminGroup"></select>
           </label>
 
+          <div class="schedule-block schedule-block-main">
+            <div class="schedule-block-head">
+              <span>01</span>
+              <div>
+                <h3>Швидкий графік</h3>
+                <p>Створює багато вікон одразу за робочими днями.</p>
+              </div>
+            </div>
+
           <div class="schedule-grid">
             <label class="field-label">
               <span>Період</span>
@@ -146,6 +155,7 @@
             </label>
           </div>
 
+          <div class="schedule-row-title">Робочі дні</div>
           <div class="weekday-picker" id="weekdayPicker" aria-label="Робочі дні">
             <button class="is-active" type="button" data-weekday="0">Пн</button>
             <button class="is-active" type="button" data-weekday="1">Вт</button>
@@ -156,7 +166,18 @@
             <button type="button" data-weekday="6">Нд</button>
           </div>
 
-          <button class="primary" id="generateSlots" type="button">Створити графік</button>
+          <p class="admin-selection" id="adminSelection"></p>
+          <button class="primary" id="generateSlots" type="button">Створити шаблон</button>
+          </div>
+
+          <div class="schedule-block">
+            <div class="schedule-block-head">
+              <span>02</span>
+              <div>
+                <h3>Разові вікна</h3>
+                <p>Оберіть одну або кілька дат у календарі й додайте потрібний час.</p>
+              </div>
+            </div>
 
           <div class="admin-calendar">
             <div class="calendar-head">
@@ -178,11 +199,11 @@
 
           <input id="adminDate" type="hidden" />
           <button class="ghost-light" id="clearDates" type="button">Очистити вибрані дні</button>
-          <p class="admin-selection" id="adminSelection"></p>
-          <h3 class="form-subtitle">Додати разово</h3>
+          <h3 class="form-subtitle">Час для вибраних дат</h3>
           <div class="quick-times" id="quickTimes"></div>
           <input id="adminTimes" type="text" placeholder="Або свої: 10:30, 14:45" />
-          <button class="primary" id="addSlots" type="button">Додати</button>
+          <button class="primary" id="addSlots" type="button">Додати разові вікна</button>
+          </div>
         </div>
         <p class="status" id="adminStatus"></p>
       </section>
