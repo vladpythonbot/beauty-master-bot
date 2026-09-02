@@ -11,8 +11,8 @@ router = Router()
 MINI_APP_URL = ""
 
 
-def menu():
-    return main_menu(MINI_APP_URL)
+def menu(user_id: int | None = None, admin_id: int | None = None):
+    return main_menu(MINI_APP_URL, bool(user_id and admin_id and is_admin(user_id, admin_id)))
 
 
 def register_handlers(db: Database, admin_id: int, mini_app_url: str = "") -> Router:
@@ -39,24 +39,29 @@ def is_admin(user_id: int, admin_id: int) -> bool:
 
 
 @router.message(CommandStart())
-async def start(message: Message, state: FSMContext) -> None:
+async def start(message: Message, state: FSMContext, admin_id: int) -> None:
     await state.clear()
     await message.answer(
         "Вітаю! Для перегляду послуг, вільного часу та запису відкрийте Mini App.",
-        reply_markup=menu(),
+        reply_markup=menu(message.from_user.id, admin_id),
     )
+
+
+@router.message(Command("id"))
+async def show_user_id(message: Message) -> None:
+    await message.answer(f"Ваш Telegram ID: <code>{message.from_user.id}</code>")
 
 
 @router.message(Command("admin"))
 async def admin_panel(message: Message, state: FSMContext, admin_id: int) -> None:
     await state.clear()
     if not is_admin(message.from_user.id, admin_id):
-        await message.answer("Ця команда доступна лише майстру.", reply_markup=menu())
+        await message.answer("Ця команда доступна лише майстру.", reply_markup=menu(message.from_user.id, admin_id))
         return
 
     await message.answer(
         "Адмін-панель тепер у Mini App. Там можна додавати вільні вікна, дивитися заявки й керувати записами.",
-        reply_markup=menu(),
+        reply_markup=menu(message.from_user.id, admin_id),
     )
 
 
@@ -101,5 +106,8 @@ async def admin_cancel(callback: CallbackQuery, db: Database, admin_id: int) -> 
 
 
 @router.message()
-async def fallback(message: Message) -> None:
-    await message.answer("Усе керування записом знаходиться в Mini App.", reply_markup=menu())
+async def fallback(message: Message, admin_id: int) -> None:
+    await message.answer(
+        "Усе керування записом знаходиться в Mini App.",
+        reply_markup=menu(message.from_user.id, admin_id),
+    )

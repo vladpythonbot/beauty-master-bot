@@ -1,13 +1,20 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, WebAppInfo
 
 
-def main_menu(mini_app_url: str = "") -> ReplyKeyboardMarkup:
+def main_menu(mini_app_url: str = "", is_admin: bool = False) -> ReplyKeyboardMarkup:
     booking_button = KeyboardButton(text="Відкрити Mini App")
     if mini_app_url:
         booking_button = KeyboardButton(text="Відкрити Mini App", web_app=WebAppInfo(url=mini_app_url))
 
+    keyboard = [[booking_button]]
+    if is_admin:
+        admin_button = KeyboardButton(text="Адмін-панель")
+        if mini_app_url:
+            admin_button = KeyboardButton(text="Адмін-панель", web_app=WebAppInfo(url=mini_app_url))
+        keyboard.append([admin_button])
+
     return ReplyKeyboardMarkup(
-        keyboard=[[booking_button]],
+        keyboard=keyboard,
         resize_keyboard=True,
         input_field_placeholder="Відкрийте Mini App",
     )
