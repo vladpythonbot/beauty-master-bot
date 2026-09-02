@@ -185,12 +185,16 @@ function renderServices() {
 }
 
 function renderGroups() {
+  const currentAdminGroup = $("#adminGroup")?.value || state.groups[0]?.id || "";
   $("#groups").innerHTML = state.groups
     .map((group) => `<button class="chip" type="button" data-group="${escapeHtml(group.id)}">${escapeHtml(group.name)}</button>`)
     .join("");
   $("#adminGroup").innerHTML = state.groups
     .map((group) => `<option value="${escapeHtml(group.id)}">${escapeHtml(group.name)}</option>`)
     .join("");
+  if (currentAdminGroup && state.groups.some((group) => String(group.id) === String(currentAdminGroup))) {
+    $("#adminGroup").value = currentAdminGroup;
+  }
   if (!state.adminSelectedDate) {
     state.adminSelectedDate = isoDateFromToday(0);
     $("#adminDate").value = state.adminSelectedDate;
@@ -206,9 +210,41 @@ function renderGroups() {
     });
   });
 
-  $("#adminGroup").addEventListener("change", () => {
+  $("#adminGroup").onchange = () => {
     renderAdminCalendar();
     updateAdminSelection();
+  };
+  renderAdminGroups();
+}
+
+function renderAdminGroups() {
+  const list = $("#adminGroups");
+  if (!list) return;
+
+  if (!state.groups.length) {
+    list.innerHTML = "<p class='status'>Додайте хоча б один графік.</p>";
+    return;
+  }
+
+  list.innerHTML = state.groups
+    .map(
+      (group) => `
+        <div class="group-admin-item">
+          <input type="text" value="${escapeHtml(group.name)}" data-group-name="${escapeHtml(group.id)}" />
+          <div>
+            <button type="button" data-rename-group="${escapeHtml(group.id)}">Зберегти</button>
+            <button type="button" data-delete-group="${escapeHtml(group.id)}">Видалити</button>
+          </div>
+        </div>
+      `
+    )
+    .join("");
+
+  document.querySelectorAll("[data-rename-group]").forEach((button) => {
+    button.addEventListener("click", () => renameGroup(button.dataset.renameGroup));
+  });
+  document.querySelectorAll("[data-delete-group]").forEach((button) => {
+    button.addEventListener("click", () => deleteGroup(button.dataset.deleteGroup));
   });
 }
 
@@ -414,6 +450,74 @@ async function loadAdminApplications() {
   });
 }
 
+async function reloadGroups() {
+  const response = await request("/api/bootstrap");
+  if (!response.ok) return false;
+  const data = await response.json();
+  state.groups = data.groups;
+  renderGroups();
+  renderAdminCalendar();
+  if (state.groupId && !state.groups.some((group) => String(group.id) === String(state.groupId))) {
+    state.groupId = "";
+    $("#dates").innerHTML = "";
+    $("#times").innerHTML = "";
+  }
+  return true;
+}
+
+async function addGroup() {
+  const input = $("#groupName");
+  const name = input.value.trim();
+  if (name.length < 2) return setAdminStatus("Введіть назву графіка.");
+
+  $("#addGroup").disabled = true;
+  setAdminStatus("Додаю графік...");
+  try {
+    const response = await request("/api/admin/groups", {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    });
+    if (!response.ok) return setAdminStatus("Не вдалося додати графік.");
+    input.value = "";
+    await reloadGroups();
+    await loadAdminSlots();
+    setAdminStatus("Графік додано.");
+  } finally {
+    $("#addGroup").disabled = false;
+  }
+}
+
+async function renameGroup(groupId) {
+  const input = [...document.querySelectorAll("[data-group-name]")].find((item) => item.dataset.groupName === groupId);
+  const cleanName = input?.value.trim() || "";
+  if (cleanName.length < 2) return setAdminStatus("Назва занадто коротка.");
+
+  setAdminStatus("Оновлюю графік...");
+  const response = await request(`/api/admin/groups/${encodeURIComponent(groupId)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ name: cleanName }),
+  });
+  if (!response.ok) return setAdminStatus("Не вдалося змінити графік.");
+  await reloadGroups();
+  await loadAdminSlots();
+  setAdminStatus("Графік оновлено.");
+}
+
+async function deleteGroup(groupId) {
+  const group = state.groups.find((item) => String(item.id) === String(groupId));
+  if (!group) return;
+
+  setAdminStatus("Видаляю графік...");
+  const response = await request(`/api/admin/groups/${encodeURIComponent(groupId)}`, { method: "DELETE" });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    return setAdminStatus(data.message || "Не вдалося видалити графік.");
+  }
+  await reloadGroups();
+  await loadAdminSlots();
+  setAdminStatus("Графік видалено.");
+}
+
 async function addAdminSlots() {
   const groupId = $("#adminGroup").value;
   const slotDate = $("#adminDate").value;
@@ -475,6 +579,7 @@ async function init() {
 }
 
 $("#sendRequest").addEventListener("click", sendApplication);
+$("#addGroup").addEventListener("click", addGroup);
 $("#addSlots").addEventListener("click", addAdminSlots);
 $("#refreshAdmin").addEventListener("click", refreshAdmin);
 $("#adminTimes").addEventListener("input", updateAdminSelection);

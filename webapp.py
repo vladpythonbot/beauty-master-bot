@@ -150,6 +150,49 @@ async def api_admin_slots(request: web.Request) -> web.Response:
     return web.json_response({"slots": slots})
 
 
+async def api_admin_create_group(request: web.Request) -> web.Response:
+    user = _get_user_from_request(request)
+    if int(user["id"]) != request.app["admin_id"]:
+        raise web.HTTPForbidden(text="Admin only")
+
+    payload = await request.json()
+    name = str(payload.get("name", "")).strip()
+    if len(name) < 2:
+        raise web.HTTPBadRequest(text="name is required")
+
+    group = await request.app["db"].create_schedule_group(name)
+    return web.json_response({"ok": True, "group": group})
+
+
+async def api_admin_update_group(request: web.Request) -> web.Response:
+    user = _get_user_from_request(request)
+    if int(user["id"]) != request.app["admin_id"]:
+        raise web.HTTPForbidden(text="Admin only")
+
+    group_id = request.match_info["group_id"]
+    payload = await request.json()
+    name = str(payload.get("name", "")).strip()
+    if len(name) < 2:
+        raise web.HTTPBadRequest(text="name is required")
+
+    updated = await request.app["db"].update_schedule_group(group_id, name)
+    if not updated:
+        raise web.HTTPNotFound(text="Group not found")
+    return web.json_response({"ok": True})
+
+
+async def api_admin_delete_group(request: web.Request) -> web.Response:
+    user = _get_user_from_request(request)
+    if int(user["id"]) != request.app["admin_id"]:
+        raise web.HTTPForbidden(text="Admin only")
+
+    group_id = request.match_info["group_id"]
+    deleted, message = await request.app["db"].delete_schedule_group(group_id)
+    if not deleted:
+        return web.json_response({"ok": False, "message": message}, status=409)
+    return web.json_response({"ok": True})
+
+
 async def api_admin_applications(request: web.Request) -> web.Response:
     user = _get_user_from_request(request)
     if int(user["id"]) != request.app["admin_id"]:
@@ -225,6 +268,9 @@ def create_web_app(db: Database, bot: Bot, bot_token: str, admin_id: int) -> web
     app.router.add_get("/api/admin/slots", api_admin_slots)
     app.router.add_post("/api/admin/slots", api_admin_add_slots)
     app.router.add_delete("/api/admin/slots/{slot_id}", api_admin_delete_slot)
+    app.router.add_post("/api/admin/groups", api_admin_create_group)
+    app.router.add_patch("/api/admin/groups/{group_id}", api_admin_update_group)
+    app.router.add_delete("/api/admin/groups/{group_id}", api_admin_delete_group)
     app.router.add_get("/api/admin/applications", api_admin_applications)
     app.router.add_patch("/api/admin/applications/{application_id}", api_admin_update_application)
     app.router.add_static("/miniapp/static", MINIAPP_DIR, show_index=False)

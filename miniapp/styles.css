@@ -446,14 +446,16 @@ select {
 }
 
 .slot-list,
-.application-list {
+.application-list,
+.group-admin-list {
   display: grid;
   gap: 8px;
   margin-top: 14px;
 }
 
 .slot-item,
-.application-item {
+.application-item,
+.group-admin-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -462,6 +464,28 @@ select {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
+}
+
+.group-admin-item input {
+  min-width: 0;
+}
+
+.group-admin-item div {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+.group-admin-item button {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  padding: 10px 11px;
 }
 
 .application-item {
@@ -589,5 +613,15 @@ select {
   .admin-hero {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .group-admin-item {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .group-admin-item div {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
   }
 }

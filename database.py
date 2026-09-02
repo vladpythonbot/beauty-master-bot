@@ -1,4 +1,5 @@
 from datetime import datetime
+from uuid import uuid4
 
 import aiosqlite
 
@@ -74,7 +75,7 @@ class Database:
                 """
                 INSERT INTO schedule_groups (id, name)
                 VALUES (?, ?)
-                ON CONFLICT(id) DO UPDATE SET name = excluded.name
+                ON CONFLICT(id) DO NOTHING
                 """,
                 (group["id"], group["name"]),
             )
@@ -91,6 +92,46 @@ class Database:
             cursor = await db.execute("SELECT * FROM schedule_groups WHERE id = ?", (group_id,))
             row = await cursor.fetchone()
             return dict(row) if row else None
+
+    async def create_schedule_group(self, name: str) -> dict:
+        group_id = f"group_{uuid4().hex[:10]}"
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute(
+                "INSERT INTO schedule_groups (id, name) VALUES (?, ?)",
+                (group_id, name),
+            )
+            await db.commit()
+        return {"id": group_id, "name": name}
+
+    async def update_schedule_group(self, group_id: str, name: str) -> bool:
+        async with aiosqlite.connect(self.path) as db:
+            cursor = await db.execute(
+                "UPDATE schedule_groups SET name = ? WHERE id = ?",
+                (name, group_id),
+            )
+            await db.commit()
+            return cursor.rowcount > 0
+
+    async def delete_schedule_group(self, group_id: str) -> tuple[bool, str]:
+        async with aiosqlite.connect(self.path) as db:
+            cursor = await db.execute(
+                """
+                SELECT COUNT(*)
+                FROM schedule_slots
+                WHERE group_id = ? AND status != 'free'
+                """,
+                (group_id,),
+            )
+            locked_count = (await cursor.fetchone())[0]
+            if locked_count:
+                return False, "У цього графіка є заявки. Спочатку завершіть або скасуйте їх."
+
+            await db.execute("DELETE FROM schedule_slots WHERE group_id = ? AND status = 'free'", (group_id,))
+            cursor = await db.execute("DELETE FROM schedule_groups WHERE id = ?", (group_id,))
+            await db.commit()
+            if cursor.rowcount <= 0:
+                return False, "Графік не знайдено."
+            return True, ""
 
     async def add_slots(self, group_id: str, slot_date: str, times: list[str]) -> int:
         created = 0
