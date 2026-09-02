@@ -1,4 +1,10 @@
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+from aiogram.types import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    KeyboardButton,
+    ReplyKeyboardMarkup,
+    WebAppInfo,
+)
 
 
 def mini_app_url_with_mode(mini_app_url: str, mode: str) -> str:
@@ -45,6 +51,15 @@ def admin_application_keyboard(application_id: int) -> InlineKeyboardMarkup:
                 ),
             ]
         ]
+    )
+
+
+def share_phone_keyboard() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text="Поділитися номером", request_contact=True)]],
+        resize_keyboard=True,
+        one_time_keyboard=True,
+        input_field_placeholder="Можна надіслати номер одним натисканням",
     )
 
 

@@ -1,7 +1,7 @@
 from aiogram import F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 
 from database import Database
 from keyboards import admin_application_keyboard, admin_menu, main_menu
@@ -119,6 +119,42 @@ async def admin_cancel(callback: CallbackQuery, db: Database, admin_id: int) -> 
     )
     await callback.message.edit_text(callback.message.html_text + "\n\n❌ Статус: скасовано")
     await callback.answer("Скасовано")
+
+
+@router.message(F.contact)
+async def save_phone_contact(message: Message, db: Database, admin_id: int) -> None:
+    contact = message.contact
+    if contact.user_id and contact.user_id != message.from_user.id:
+        await message.answer(
+            "Надішліть, будь ласка, саме свій номер.",
+            reply_markup=ReplyKeyboardRemove(),
+        )
+        return
+
+    phone = contact.phone_number
+    application = await db.update_latest_application_contact(message.from_user.id, phone)
+    if not application:
+        await message.answer(
+            "Номер отримано, але активну заявку не знайдено.",
+            reply_markup=ReplyKeyboardRemove(),
+        )
+        return
+
+    await message.bot.send_message(
+        admin_id,
+        (
+            f"📞 Клієнт додав номер до заявки #{application['id']}.\n\n"
+            f"Клієнт: {application['client_name']}\n"
+            f"Телефон: {phone}\n"
+            f"Послуга:\n{application['service']}\n\n"
+            f"Дата: {format_date(application['desired_date'])}\n"
+            f"Час: {application['desired_time']}"
+        ),
+    )
+    await message.answer(
+        "Дякуємо, номер додано до заявки.",
+        reply_markup=ReplyKeyboardRemove(),
+    )
 
 
 @router.message()

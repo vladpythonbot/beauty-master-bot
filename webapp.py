@@ -10,7 +10,7 @@ from aiogram import Bot
 
 from data import SERVICES
 from database import Database
-from keyboards import admin_application_keyboard
+from keyboards import admin_application_keyboard, share_phone_keyboard
 from texts import admin_application_text
 from texts import format_date
 
@@ -233,8 +233,10 @@ async def api_create_application(request: web.Request) -> web.Response:
             f"Майстер: {slot['group_name']}\n"
             f"Дата: {format_date(slot['slot_date'])}\n"
             f"Час: {slot['slot_time']}\n\n"
-            "Майстер підтвердить запис окремим повідомленням."
+            "Майстер підтвердить запис окремим повідомленням.\n\n"
+            "За бажанням можете поділитися номером телефону кнопкою нижче."
         ),
+        reply_markup=share_phone_keyboard(),
     )
     return web.json_response({"ok": True, "application_id": application_id})
 

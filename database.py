@@ -374,6 +374,30 @@ class Database:
             )
             return [dict(row) for row in await cursor.fetchall()]
 
+    async def update_latest_application_contact(self, user_id: int, contact: str) -> dict | None:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                """
+                SELECT id
+                FROM applications
+                WHERE user_id = ? AND status IN ('new', 'confirmed')
+                ORDER BY created_at DESC
+                LIMIT 1
+                """,
+                (user_id,),
+            )
+            row = await cursor.fetchone()
+            if not row:
+                return None
+
+            await db.execute(
+                "UPDATE applications SET contact = ? WHERE id = ?",
+                (contact, row["id"]),
+            )
+            await db.commit()
+            return await self.get_application(int(row["id"]))
+
     async def get_due_reminders(self, now_value: datetime, minutes_before: int = 120) -> list[dict]:
         window_end = now_value.timestamp() + minutes_before * 60
         async with aiosqlite.connect(self.path) as db:
