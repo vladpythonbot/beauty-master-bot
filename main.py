@@ -64,7 +64,7 @@ async def main() -> None:
     dp = Dispatcher(storage=MemoryStorage())
     dp.include_router(register_handlers(db, config.admin_id, config.mini_app_url))
 
-    web_app = create_web_app(db, bot, config.bot_token, config.admin_id)
+    web_app = create_web_app(db, bot, config.bot_token, config.admin_id, config.public_admin_mode)
     runner = await start_web_server(web_app, config.host, config.port)
     reminders_task = asyncio.create_task(reminder_loop(db, bot))
 

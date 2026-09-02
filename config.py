@@ -22,6 +22,7 @@ class Config:
     admin_id: int
     db_path: str = "beauty_bot.db"
     mini_app_url: str = ""
+    public_admin_mode: bool = False
     host: str = "0.0.0.0"
     port: int = 8000
 
@@ -31,6 +32,7 @@ def load_config() -> Config:
     admin_id = os.getenv("ADMIN_ID", "").strip()
     db_path = os.getenv("DB_PATH", "beauty_bot.db").strip()
     mini_app_url = os.getenv("MINI_APP_URL", "").strip()
+    public_admin_mode = os.getenv("PUBLIC_ADMIN_MODE", "false").strip().lower() in {"1", "true", "yes", "on"}
     railway_domain = os.getenv("RAILWAY_PUBLIC_DOMAIN", "").strip()
     host = os.getenv("HOST", "0.0.0.0").strip()
     port = int(os.getenv("PORT", "8000"))
@@ -50,6 +52,7 @@ def load_config() -> Config:
         admin_id=int(admin_id),
         db_path=db_path,
         mini_app_url=mini_app_url,
+        public_admin_mode=public_admin_mode,
         host=host,
         port=port,
     )

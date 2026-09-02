@@ -30,6 +30,19 @@ def _valid_service_ids(service_ids: list[str]) -> list[str]:
     return [service_id for service_id in service_ids if service_id in known_ids]
 
 
+def _is_admin_request(request: web.Request, user: dict | None) -> bool:
+    if request.app["public_admin_mode"]:
+        return True
+    return bool(user and int(user["id"]) == request.app["admin_id"])
+
+
+def _get_admin_user_from_request(request: web.Request) -> dict | None:
+    user = _get_user_from_request(request, required=not request.app["public_admin_mode"])
+    if not _is_admin_request(request, user):
+        raise web.HTTPForbidden(text="Admin only")
+    return user
+
+
 def _parse_iso_date(value: str) -> date:
     try:
         return date.fromisoformat(value)
@@ -126,14 +139,12 @@ async def site_page(_: web.Request) -> web.FileResponse:
 
 async def api_bootstrap(request: web.Request) -> web.Response:
     user = _get_user_from_request(request, required=False)
-    user_id = int(user["id"]) if user and user.get("id") else None
-    is_admin = bool(user_id and user_id == request.app["admin_id"])
     groups = await request.app["db"].get_schedule_groups()
     return web.json_response(
         {
             "services": SERVICES,
             "groups": groups,
-            "is_admin": is_admin,
+            "is_admin": _is_admin_request(request, user),
         }
     )
 
@@ -214,17 +225,13 @@ async def api_create_application(request: web.Request) -> web.Response:
 
 
 async def api_admin_slots(request: web.Request) -> web.Response:
-    user = _get_user_from_request(request)
-    if int(user["id"]) != request.app["admin_id"]:
-        raise web.HTTPForbidden(text="Admin only")
+    _get_admin_user_from_request(request)
     slots = await request.app["db"].get_upcoming_slots(limit=1000)
     return web.json_response({"slots": slots})
 
 
 async def api_admin_create_group(request: web.Request) -> web.Response:
-    user = _get_user_from_request(request)
-    if int(user["id"]) != request.app["admin_id"]:
-        raise web.HTTPForbidden(text="Admin only")
+    _get_admin_user_from_request(request)
 
     payload = await request.json()
     name = str(payload.get("name", "")).strip()
@@ -239,9 +246,7 @@ async def api_admin_create_group(request: web.Request) -> web.Response:
 
 
 async def api_admin_update_group(request: web.Request) -> web.Response:
-    user = _get_user_from_request(request)
-    if int(user["id"]) != request.app["admin_id"]:
-        raise web.HTTPForbidden(text="Admin only")
+    _get_admin_user_from_request(request)
 
     group_id = request.match_info["group_id"]
     payload = await request.json()
@@ -259,9 +264,7 @@ async def api_admin_update_group(request: web.Request) -> web.Response:
 
 
 async def api_admin_delete_group(request: web.Request) -> web.Response:
-    user = _get_user_from_request(request)
-    if int(user["id"]) != request.app["admin_id"]:
-        raise web.HTTPForbidden(text="Admin only")
+    _get_admin_user_from_request(request)
 
     group_id = request.match_info["group_id"]
     deleted, message = await request.app["db"].delete_schedule_group(group_id)
@@ -271,17 +274,13 @@ async def api_admin_delete_group(request: web.Request) -> web.Response:
 
 
 async def api_admin_applications(request: web.Request) -> web.Response:
-    user = _get_user_from_request(request)
-    if int(user["id"]) != request.app["admin_id"]:
-        raise web.HTTPForbidden(text="Admin only")
+    _get_admin_user_from_request(request)
     applications = await request.app["db"].get_recent_applications(limit=30)
     return web.json_response({"applications": applications})
 
 
 async def api_admin_update_application(request: web.Request) -> web.Response:
-    user = _get_user_from_request(request)
-    if int(user["id"]) != request.app["admin_id"]:
-        raise web.HTTPForbidden(text="Admin only")
+    _get_admin_user_from_request(request)
 
     application_id = int(request.match_info["application_id"])
     payload = await request.json()
@@ -308,9 +307,7 @@ async def api_admin_update_application(request: web.Request) -> web.Response:
 
 
 async def api_admin_add_slots(request: web.Request) -> web.Response:
-    user = _get_user_from_request(request)
-    if int(user["id"]) != request.app["admin_id"]:
-        raise web.HTTPForbidden(text="Admin only")
+    _get_admin_user_from_request(request)
 
     payload = await request.json()
     group_id = str(payload.get("group_id", "")).strip()
@@ -333,9 +330,7 @@ async def api_admin_add_slots(request: web.Request) -> web.Response:
 
 
 async def api_admin_add_slots_bulk(request: web.Request) -> web.Response:
-    user = _get_user_from_request(request)
-    if int(user["id"]) != request.app["admin_id"]:
-        raise web.HTTPForbidden(text="Admin only")
+    _get_admin_user_from_request(request)
 
     payload = await request.json()
     group_id, slots_by_date = _build_schedule_slots(payload)
@@ -348,21 +343,20 @@ async def api_admin_add_slots_bulk(request: web.Request) -> web.Response:
 
 
 async def api_admin_delete_slot(request: web.Request) -> web.Response:
-    user = _get_user_from_request(request)
-    if int(user["id"]) != request.app["admin_id"]:
-        raise web.HTTPForbidden(text="Admin only")
+    _get_admin_user_from_request(request)
 
     slot_id = int(request.match_info["slot_id"])
     deleted = await request.app["db"].delete_slot(slot_id)
     return web.json_response({"ok": deleted})
 
 
-def create_web_app(db: Database, bot: Bot, bot_token: str, admin_id: int) -> web.Application:
+def create_web_app(db: Database, bot: Bot, bot_token: str, admin_id: int, public_admin_mode: bool = False) -> web.Application:
     app = web.Application()
     app["db"] = db
     app["bot"] = bot
     app["bot_token"] = bot_token
     app["admin_id"] = admin_id
+    app["public_admin_mode"] = public_admin_mode
 
     app.router.add_get("/", site_page)
     app.router.add_get("/miniapp", miniapp_page)

@@ -706,10 +706,13 @@ async function init() {
   renderWeekdays();
   renderAdminCalendar();
 
-  if (data.is_admin) {
+  $("#modeSwitch").classList.toggle("hidden", !state.isAdmin);
+  if (state.isAdmin) {
     $("#modeSwitch").classList.remove("hidden");
     await refreshAdmin();
     setMode(initialMode);
+  } else {
+    setMode("booking");
   }
 }
 
