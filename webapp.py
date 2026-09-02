@@ -12,6 +12,7 @@ from data import SERVICES
 from database import Database
 from keyboards import admin_application_keyboard
 from texts import admin_application_text
+from texts import format_date
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -22,6 +23,11 @@ SITE_DIR = BASE_DIR / "site"
 def _service_names(service_ids: list[str]) -> str:
     selected = [service for service in SERVICES if service["id"] in service_ids]
     return "\n".join(f"{service['name']} — {service['price']}" for service in selected)
+
+
+def _valid_service_ids(service_ids: list[str]) -> list[str]:
+    known_ids = {service["id"] for service in SERVICES}
+    return [service_id for service_id in service_ids if service_id in known_ids]
 
 
 def _parse_iso_date(value: str) -> date:
@@ -193,6 +199,17 @@ async def api_create_application(request: web.Request) -> web.Response:
         admin_application_text(application_id, int(user["id"]), user.get("username"), data),
         reply_markup=admin_application_keyboard(application_id),
     )
+    await request.app["bot"].send_message(
+        int(user["id"]),
+        (
+            "✅ Заявку отримано.\n\n"
+            f"Послуга:\n{_service_names(service_ids)}\n\n"
+            f"Майстер: {slot['group_name']}\n"
+            f"Дата: {format_date(slot['slot_date'])}\n"
+            f"Час: {slot['slot_time']}\n\n"
+            "Майстер підтвердить запис окремим повідомленням."
+        ),
+    )
     return web.json_response({"ok": True, "application_id": application_id})
 
 
@@ -211,10 +228,13 @@ async def api_admin_create_group(request: web.Request) -> web.Response:
 
     payload = await request.json()
     name = str(payload.get("name", "")).strip()
+    service_ids = _valid_service_ids(payload.get("service_ids") or [])
     if len(name) < 2:
         raise web.HTTPBadRequest(text="name is required")
+    if not service_ids:
+        raise web.HTTPBadRequest(text="service_ids are required")
 
-    group = await request.app["db"].create_schedule_group(name)
+    group = await request.app["db"].create_schedule_group(name, service_ids)
     return web.json_response({"ok": True, "group": group})
 
 
@@ -226,10 +246,13 @@ async def api_admin_update_group(request: web.Request) -> web.Response:
     group_id = request.match_info["group_id"]
     payload = await request.json()
     name = str(payload.get("name", "")).strip()
+    service_ids = _valid_service_ids(payload.get("service_ids") or [])
     if len(name) < 2:
         raise web.HTTPBadRequest(text="name is required")
+    if not service_ids:
+        raise web.HTTPBadRequest(text="service_ids are required")
 
-    updated = await request.app["db"].update_schedule_group(group_id, name)
+    updated = await request.app["db"].update_schedule_group(group_id, name, service_ids)
     if not updated:
         raise web.HTTPNotFound(text="Group not found")
     return web.json_response({"ok": True})
@@ -271,7 +294,12 @@ async def api_admin_update_application(request: web.Request) -> web.Response:
         raise web.HTTPNotFound(text="Application not found")
 
     if status == "confirmed":
-        text = "✅ Ваш запис підтверджено. Майстер очікує вас у зазначений час."
+        text = (
+            "✅ Ваш запис підтверджено.\n\n"
+            f"Дата: {format_date(application['desired_date'])}\n"
+            f"Час: {application['desired_time']}\n"
+            f"Майстер: {application['schedule_group'] or 'майстер'}"
+        )
     else:
         text = "❌ На жаль, заявку скасовано. Обраний час знову доступний для запису."
 

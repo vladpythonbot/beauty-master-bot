@@ -1,4 +1,5 @@
 from datetime import datetime
+import json
 from uuid import uuid4
 
 import aiosqlite
@@ -19,6 +20,7 @@ CREATE TABLE IF NOT EXISTS applications (
     schedule_group TEXT,
     slot_id INTEGER,
     status TEXT NOT NULL DEFAULT 'new',
+    reminder_sent_at TEXT,
     created_at TEXT NOT NULL
 );
 """
@@ -26,7 +28,8 @@ CREATE TABLE IF NOT EXISTS applications (
 CREATE_GROUPS_TABLE = """
 CREATE TABLE IF NOT EXISTS schedule_groups (
     id TEXT PRIMARY KEY,
-    name TEXT NOT NULL
+    name TEXT NOT NULL,
+    service_ids TEXT NOT NULL DEFAULT '[]'
 );
 """
 
@@ -54,6 +57,7 @@ class Database:
             await db.execute(CREATE_GROUPS_TABLE)
             await db.execute(CREATE_SLOTS_TABLE)
             await self._ensure_application_columns(db)
+            await self._ensure_group_columns(db)
             await self._seed_schedule_groups(db)
             await db.commit()
 
@@ -63,6 +67,13 @@ class Database:
             await db.execute("ALTER TABLE applications ADD COLUMN schedule_group TEXT")
         if "slot_id" not in columns:
             await db.execute("ALTER TABLE applications ADD COLUMN slot_id INTEGER")
+        if "reminder_sent_at" not in columns:
+            await db.execute("ALTER TABLE applications ADD COLUMN reminder_sent_at TEXT")
+
+    async def _ensure_group_columns(self, db: aiosqlite.Connection) -> None:
+        columns = await self._table_columns(db, "schedule_groups")
+        if "service_ids" not in columns:
+            await db.execute("ALTER TABLE schedule_groups ADD COLUMN service_ids TEXT NOT NULL DEFAULT '[]'")
 
     async def _table_columns(self, db: aiosqlite.Connection, table_name: str) -> set[str]:
         cursor = await db.execute(f"PRAGMA table_info({table_name})")
@@ -73,41 +84,58 @@ class Database:
         for group in SCHEDULE_GROUPS:
             await db.execute(
                 """
-                INSERT INTO schedule_groups (id, name)
-                VALUES (?, ?)
+                INSERT INTO schedule_groups (id, name, service_ids)
+                VALUES (?, ?, ?)
                 ON CONFLICT(id) DO NOTHING
                 """,
-                (group["id"], group["name"]),
+                (group["id"], group["name"], json.dumps(group.get("service_ids", []), ensure_ascii=False)),
             )
+            await db.execute(
+                """
+                UPDATE schedule_groups
+                SET service_ids = ?
+                WHERE id = ? AND service_ids = '[]'
+                """,
+                (json.dumps(group.get("service_ids", []), ensure_ascii=False), group["id"]),
+            )
+
+    def _decode_group(self, row: aiosqlite.Row) -> dict:
+        group = dict(row)
+        try:
+            group["service_ids"] = json.loads(group.get("service_ids") or "[]")
+        except json.JSONDecodeError:
+            group["service_ids"] = []
+        return group
 
     async def get_schedule_groups(self) -> list[dict]:
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
             cursor = await db.execute("SELECT * FROM schedule_groups ORDER BY name")
-            return [dict(row) for row in await cursor.fetchall()]
+            return [self._decode_group(row) for row in await cursor.fetchall()]
 
     async def get_schedule_group(self, group_id: str) -> dict | None:
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
             cursor = await db.execute("SELECT * FROM schedule_groups WHERE id = ?", (group_id,))
             row = await cursor.fetchone()
-            return dict(row) if row else None
+            return self._decode_group(row) if row else None
 
-    async def create_schedule_group(self, name: str) -> dict:
+    async def create_schedule_group(self, name: str, service_ids: list[str] | None = None) -> dict:
         group_id = f"group_{uuid4().hex[:10]}"
+        service_ids = service_ids or []
         async with aiosqlite.connect(self.path) as db:
             await db.execute(
-                "INSERT INTO schedule_groups (id, name) VALUES (?, ?)",
-                (group_id, name),
+                "INSERT INTO schedule_groups (id, name, service_ids) VALUES (?, ?, ?)",
+                (group_id, name, json.dumps(service_ids, ensure_ascii=False)),
             )
             await db.commit()
-        return {"id": group_id, "name": name}
+        return {"id": group_id, "name": name, "service_ids": service_ids}
 
-    async def update_schedule_group(self, group_id: str, name: str) -> bool:
+    async def update_schedule_group(self, group_id: str, name: str, service_ids: list[str] | None = None) -> bool:
         async with aiosqlite.connect(self.path) as db:
             cursor = await db.execute(
-                "UPDATE schedule_groups SET name = ? WHERE id = ?",
-                (name, group_id),
+                "UPDATE schedule_groups SET name = ?, service_ids = ? WHERE id = ?",
+                (name, json.dumps(service_ids or [], ensure_ascii=False), group_id),
             )
             await db.commit()
             return cursor.rowcount > 0
@@ -345,6 +373,39 @@ class Database:
                 (limit,),
             )
             return [dict(row) for row in await cursor.fetchall()]
+
+    async def get_due_reminders(self, now_value: datetime, minutes_before: int = 120) -> list[dict]:
+        window_end = now_value.timestamp() + minutes_before * 60
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                """
+                SELECT *
+                FROM applications
+                WHERE status = 'confirmed' AND reminder_sent_at IS NULL
+                ORDER BY desired_date, desired_time
+                """
+            )
+            rows = [dict(row) for row in await cursor.fetchall()]
+
+        due = []
+        for row in rows:
+            try:
+                appointment_at = datetime.fromisoformat(f"{row['desired_date']}T{row['desired_time']}")
+            except ValueError:
+                continue
+            appointment_timestamp = appointment_at.timestamp()
+            if now_value.timestamp() <= appointment_timestamp <= window_end:
+                due.append(row)
+        return due
+
+    async def mark_reminder_sent(self, application_id: int) -> None:
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute(
+                "UPDATE applications SET reminder_sent_at = ? WHERE id = ?",
+                (datetime.now().isoformat(timespec="seconds"), application_id),
+            )
+            await db.commit()
 
     async def update_status(self, application_id: int, status: str) -> dict | None:
         async with aiosqlite.connect(self.path) as db:

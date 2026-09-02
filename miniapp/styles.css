@@ -118,6 +118,14 @@ body {
   font-size: 14px;
 }
 
+.card small {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
 .card.is-active,
 .chip.is-active {
   border-color: var(--accent);
@@ -500,7 +508,7 @@ select {
 .application-item,
 .group-admin-item {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: space-between;
   gap: 10px;
   padding: 10px 12px;
@@ -509,14 +517,49 @@ select {
   background: #fff;
 }
 
-.group-admin-item input {
+.group-admin-fields {
+  display: grid;
+  flex: 1;
+  gap: 8px;
+}
+
+.group-admin-fields input {
   min-width: 0;
 }
 
-.group-admin-item div {
+.group-service-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.group-service-list label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: auto;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+  padding: 6px 8px;
+}
+
+.group-service-list input {
+  width: auto;
+  min-height: 0;
+}
+
+.group-admin-actions {
   display: flex;
   flex: 0 0 auto;
   gap: 6px;
+}
+
+.slot-item {
+  align-items: center;
 }
 
 .group-admin-item button {
@@ -671,7 +714,7 @@ select {
     flex-direction: column;
   }
 
-  .group-admin-item div {
+  .group-admin-actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
   }

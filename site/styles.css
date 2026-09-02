@@ -375,11 +375,20 @@ h3 {
 }
 
 .service-card {
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
 .card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   padding: 22px;
+}
+
+.service-card .button {
+  margin-top: auto;
 }
 
 .service-meta {

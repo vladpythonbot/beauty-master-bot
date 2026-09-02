@@ -141,6 +141,10 @@ function getSelectedAdminGroupId() {
   return $("#adminGroup")?.value || "";
 }
 
+function getServiceById(serviceId) {
+  return state.services.find((service) => String(service.id) === String(serviceId));
+}
+
 function renderAdminCalendar() {
   const calendar = $("#adminCalendar");
   if (!calendar) return;
@@ -204,7 +208,8 @@ function renderServices() {
       (service) => `
         <button class="card" type="button" data-service="${service.id}">
           <strong>${escapeHtml(service.name)}</strong>
-          <span>${escapeHtml(service.price)}</span>
+          <span>${escapeHtml(service.duration || "")} · ${escapeHtml(service.price)}</span>
+          <small>${escapeHtml(service.description || "")}</small>
         </button>
       `
     )
@@ -216,15 +221,55 @@ function renderServices() {
       if (state.selectedServices.has(id)) state.selectedServices.delete(id);
       else state.selectedServices.add(id);
       button.classList.toggle("is-active", state.selectedServices.has(id));
+      renderClientGroups();
+    });
+  });
+}
+
+function getClientGroups() {
+  const selectedServices = [...state.selectedServices].map(getServiceById).filter(Boolean);
+  if (!selectedServices.length) return state.groups;
+
+  return state.groups.filter((group) =>
+    selectedServices.every((service) => (group.service_ids || []).includes(service.id))
+  );
+}
+
+function renderClientGroups() {
+  const groups = getClientGroups();
+  $("#groups").innerHTML = groups
+    .map((group) => `<button class="chip" type="button" data-group="${escapeHtml(group.id)}">${escapeHtml(group.name)}</button>`)
+    .join("");
+
+  if (!groups.length) {
+    $("#groups").innerHTML = "<p class='status'>Для цієї комбінації послуг немає спільного майстра. Оберіть одну процедуру або іншу комбінацію.</p>";
+    state.groupId = "";
+    $("#dates").innerHTML = "";
+    $("#times").innerHTML = "";
+    return;
+  }
+
+  if (state.groupId && !groups.some((group) => String(group.id) === String(state.groupId))) {
+    state.groupId = "";
+    $("#dates").innerHTML = "";
+    $("#times").innerHTML = "";
+  }
+
+  document.querySelectorAll("[data-group]").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.group === state.groupId);
+    button.addEventListener("click", async () => {
+      state.groupId = button.dataset.group;
+      state.slotId = 0;
+      document.querySelectorAll("[data-group]").forEach((item) => item.classList.remove("is-active"));
+      button.classList.add("is-active");
+      await loadDates();
     });
   });
 }
 
 function renderGroups() {
+  renderClientGroups();
   const currentAdminGroup = $("#adminGroup")?.value || state.groups[0]?.id || "";
-  $("#groups").innerHTML = state.groups
-    .map((group) => `<button class="chip" type="button" data-group="${escapeHtml(group.id)}">${escapeHtml(group.name)}</button>`)
-    .join("");
   $("#adminGroup").innerHTML = state.groups
     .map((group) => `<option value="${escapeHtml(group.id)}">${escapeHtml(group.name)}</option>`)
     .join("");
@@ -235,16 +280,6 @@ function renderGroups() {
     state.adminSelectedDate = isoDateFromToday(0);
     $("#adminDate").value = state.adminSelectedDate;
   }
-
-  document.querySelectorAll("[data-group]").forEach((button) => {
-    button.addEventListener("click", async () => {
-      state.groupId = button.dataset.group;
-      state.slotId = 0;
-      document.querySelectorAll("[data-group]").forEach((item) => item.classList.remove("is-active"));
-      button.classList.add("is-active");
-      await loadDates();
-    });
-  });
 
   $("#adminGroup").onchange = () => {
     renderAdminCalendar();
@@ -266,8 +301,27 @@ function renderAdminGroups() {
     .map(
       (group) => `
         <div class="group-admin-item">
-          <input type="text" value="${escapeHtml(group.name)}" data-group-name="${escapeHtml(group.id)}" />
-          <div>
+          <div class="group-admin-fields">
+            <input type="text" value="${escapeHtml(group.name)}" data-group-name="${escapeHtml(group.id)}" />
+            <div class="group-service-list">
+              ${state.services
+                .map(
+                  (service) => `
+                    <label>
+                      <input
+                        type="checkbox"
+                        data-group-service="${escapeHtml(group.id)}"
+                        value="${escapeHtml(service.id)}"
+                        ${(group.service_ids || []).includes(service.id) ? "checked" : ""}
+                      />
+                      <span>${escapeHtml(service.name)}</span>
+                    </label>
+                  `
+                )
+                .join("")}
+            </div>
+          </div>
+          <div class="group-admin-actions">
             <button type="button" data-rename-group="${escapeHtml(group.id)}">Зберегти</button>
             <button type="button" data-delete-group="${escapeHtml(group.id)}">Видалити</button>
           </div>
@@ -456,7 +510,7 @@ async function loadAdminApplications() {
       return `
         <div class="application-item">
           <div>
-            <strong>#${item.id} · ${escapeHtml(item.client_name)} · ${statusLabel(item.status)}</strong>
+            <strong>${escapeHtml(item.client_name)} · ${statusLabel(item.status)}</strong>
             <div class="application-meta">
               <span>${formatDate(item.desired_date)}</span>
               <span>${escapeHtml(item.desired_time)}</span>
@@ -511,7 +565,7 @@ async function addGroup() {
   try {
     const response = await request("/api/admin/groups", {
       method: "POST",
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, service_ids: state.services.map((service) => service.id) }),
     });
     if (!response.ok) return setAdminStatus("Не вдалося додати графік.");
     input.value = "";
@@ -526,12 +580,14 @@ async function addGroup() {
 async function renameGroup(groupId) {
   const input = [...document.querySelectorAll("[data-group-name]")].find((item) => item.dataset.groupName === groupId);
   const cleanName = input?.value.trim() || "";
+  const serviceIds = [...document.querySelectorAll(`[data-group-service="${groupId}"]:checked`)].map((item) => item.value);
   if (cleanName.length < 2) return setAdminStatus("Назва занадто коротка.");
+  if (!serviceIds.length) return setAdminStatus("Оберіть хоча б одну послугу для майстра.");
 
   setAdminStatus("Оновлюю графік...");
   const response = await request(`/api/admin/groups/${encodeURIComponent(groupId)}`, {
     method: "PATCH",
-    body: JSON.stringify({ name: cleanName }),
+    body: JSON.stringify({ name: cleanName, service_ids: serviceIds }),
   });
   if (!response.ok) return setAdminStatus("Не вдалося змінити графік.");
   await reloadGroups();
@@ -651,7 +707,6 @@ async function init() {
   renderAdminCalendar();
 
   if (data.is_admin) {
-    $("#modeSwitch").classList.remove("hidden");
     await refreshAdmin();
     setMode(initialMode);
   }

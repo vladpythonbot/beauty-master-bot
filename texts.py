@@ -22,14 +22,21 @@ def format_selected_services(service_ids: list[str]) -> str:
     for service_id in service_ids:
         service = get_service(service_id)
         if service:
-            items.append(f"{service['name']} — {service['price']}")
+            items.append(f"{service['name']} — {service['duration']} — {service['price']}")
     return "\n".join(f"• {escape(item)}" for item in items)
 
 
 def services_text() -> str:
     lines = ["💅 <b>Послуги та ціни</b>", ""]
     for service in SERVICES:
-        lines.append(f"• {escape(service['name'])} — <b>{escape(service['price'])}</b>")
+        lines.extend(
+            [
+                f"<b>{escape(service['name'])}</b>",
+                escape(service["description"]),
+                f"{escape(service['duration'])} · <b>{escape(service['price'])}</b>",
+                "",
+            ]
+        )
     return "\n".join(lines)
 
 
@@ -60,9 +67,7 @@ def admin_application_text(application_id: int, user_id: int, username: str | No
     username_text = f"@{escape(username)}" if username else "не вказано"
     return (
         "🔔 <b>Нова заявка на запис</b>\n\n"
-        f"ID заявки: <b>{application_id}</b>\n"
-        f"Telegram ID: <code>{user_id}</code>\n"
-        f"Username: {username_text}\n\n"
+        f"Telegram: {username_text}\n\n"
         f"Послуги:\n{format_selected_services(data['service_ids'])}\n"
         f"Адреса/майстер: <b>{escape(data['group_name'])}</b>\n"
         f"Дата: <b>{format_date(data['slot_date'])}</b>\n"
@@ -85,7 +90,7 @@ def admin_applications_text(applications: list[dict]) -> str:
     lines = ["📝 <b>Останні заявки</b>", ""]
     for item in applications:
         lines.append(
-            f"#{item['id']} · {escape(item['desired_date'])} {escape(item['desired_time'])} · "
+            f"{format_date(item['desired_date'])} {escape(item['desired_time'])} · "
             f"{escape(item['client_name'])} · {escape(status_names.get(item['status'], item['status']))}"
         )
         lines.append(f"{escape(item['service'])}")

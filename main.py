@@ -1,5 +1,7 @@
 import asyncio
 import logging
+from contextlib import suppress
+from datetime import datetime
 
 from aiohttp import web
 from aiogram import Bot, Dispatcher
@@ -10,7 +12,11 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from config import load_config
 from database import Database
 from handlers import register_handlers
+from texts import format_date
 from webapp import create_web_app
+
+
+REMINDER_MINUTES_BEFORE = 120
 
 
 async def start_web_server(app: web.Application, host: str, port: int) -> web.AppRunner:
@@ -20,6 +26,28 @@ async def start_web_server(app: web.Application, host: str, port: int) -> web.Ap
     await site.start()
     logging.info("Mini App server started on %s:%s", host, port)
     return runner
+
+
+async def reminder_loop(db: Database, bot: Bot) -> None:
+    while True:
+        try:
+            applications = await db.get_due_reminders(datetime.now(), REMINDER_MINUTES_BEFORE)
+            for application in applications:
+                await bot.send_message(
+                    application["user_id"],
+                    (
+                        "⏰ Нагадування про запис\n\n"
+                        f"Дата: {format_date(application['desired_date'])}\n"
+                        f"Час: {application['desired_time']}\n"
+                        f"Майстер: {application['schedule_group'] or 'майстер'}\n"
+                        f"Послуга:\n{application['service']}\n\n"
+                        "Якщо плани змінилися, напишіть майстру заздалегідь."
+                    ),
+                )
+                await db.mark_reminder_sent(application["id"])
+        except Exception:
+            logging.exception("Failed to send appointment reminders")
+        await asyncio.sleep(300)
 
 
 async def main() -> None:
@@ -38,11 +66,15 @@ async def main() -> None:
 
     web_app = create_web_app(db, bot, config.bot_token, config.admin_id)
     runner = await start_web_server(web_app, config.host, config.port)
+    reminders_task = asyncio.create_task(reminder_loop(db, bot))
 
     await bot.delete_webhook(drop_pending_updates=True)
     try:
         await dp.start_polling(bot)
     finally:
+        reminders_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await reminders_task
         await runner.cleanup()
 
 

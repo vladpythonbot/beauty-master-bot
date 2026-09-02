@@ -4,7 +4,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from database import Database
-from keyboards import admin_application_keyboard, main_menu
+from keyboards import admin_application_keyboard, admin_menu, main_menu
+from texts import format_date, services_text
 
 
 router = Router()
@@ -52,6 +53,11 @@ async def show_user_id(message: Message) -> None:
     await message.answer(f"Ваш Telegram ID: <code>{message.from_user.id}</code>")
 
 
+@router.message(Command("services"))
+async def show_services(message: Message) -> None:
+    await message.answer(services_text())
+
+
 @router.message(Command("admin"))
 async def admin_panel(message: Message, state: FSMContext, admin_id: int) -> None:
     await state.clear()
@@ -66,7 +72,7 @@ async def admin_panel(message: Message, state: FSMContext, admin_id: int) -> Non
 
     await message.answer(
         "Натисніть кнопку під повідомленням, щоб відкрити адмін-панель.",
-        reply_markup=menu(message.from_user.id, admin_id),
+        reply_markup=admin_menu(MINI_APP_URL),
     )
 
 
@@ -84,7 +90,12 @@ async def admin_confirm(callback: CallbackQuery, db: Database, admin_id: int) ->
 
     await callback.bot.send_message(
         application["user_id"],
-        "✅ Ваш запис підтверджено. Майстер очікує вас у зазначений час.",
+        (
+            "✅ Ваш запис підтверджено.\n\n"
+            f"Дата: {format_date(application['desired_date'])}\n"
+            f"Час: {application['desired_time']}\n"
+            f"Майстер: {application['schedule_group'] or 'майстер'}"
+        ),
     )
     await callback.message.edit_text(callback.message.html_text + "\n\n✅ Статус: підтверджено")
     await callback.answer("Підтверджено")

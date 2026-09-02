@@ -10,18 +10,25 @@ def main_menu(mini_app_url: str = "", is_admin: bool = False) -> InlineKeyboardM
     if not mini_app_url:
         return None
 
-    keyboard = [[InlineKeyboardButton(text="Відкрити запис", web_app=WebAppInfo(url=mini_app_url))]]
-    if is_admin:
-        keyboard.append(
+    return InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="Відкрити запис", web_app=WebAppInfo(url=mini_app_url))]]
+    )
+
+
+def admin_menu(mini_app_url: str = "") -> InlineKeyboardMarkup | None:
+    if not mini_app_url:
+        return None
+
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="Адмін-панель",
+                    text="Відкрити адмінку",
                     web_app=WebAppInfo(url=mini_app_url_with_mode(mini_app_url, "admin")),
                 )
             ]
-        )
-
-    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+        ]
+    )
 
 
 def admin_application_keyboard(application_id: int) -> InlineKeyboardMarkup:
