@@ -1,6 +1,11 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, WebAppInfo
 
 
+def mini_app_url_with_mode(mini_app_url: str, mode: str) -> str:
+    separator = "&" if "?" in mini_app_url else "?"
+    return f"{mini_app_url}{separator}mode={mode}"
+
+
 def main_menu(mini_app_url: str = "", is_admin: bool = False) -> ReplyKeyboardMarkup:
     booking_button = KeyboardButton(text="Відкрити Mini App")
     if mini_app_url:
@@ -10,7 +15,10 @@ def main_menu(mini_app_url: str = "", is_admin: bool = False) -> ReplyKeyboardMa
     if is_admin:
         admin_button = KeyboardButton(text="Адмін-панель")
         if mini_app_url:
-            admin_button = KeyboardButton(text="Адмін-панель", web_app=WebAppInfo(url=mini_app_url))
+            admin_button = KeyboardButton(
+                text="Адмін-панель",
+                web_app=WebAppInfo(url=mini_app_url_with_mode(mini_app_url, "admin")),
+            )
         keyboard.append([admin_button])
 
     return ReplyKeyboardMarkup(

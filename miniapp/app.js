@@ -1,5 +1,6 @@
 const tg = window.Telegram?.WebApp;
 const initData = tg?.initData || "";
+const initialMode = new URLSearchParams(window.location.search).get("mode") === "admin" ? "admin" : "booking";
 
 const state = {
   services: [],
@@ -345,6 +346,7 @@ async function init() {
   if (data.is_admin) {
     $("#modeSwitch").classList.remove("hidden");
     await refreshAdmin();
+    setMode(initialMode);
   }
 }
 

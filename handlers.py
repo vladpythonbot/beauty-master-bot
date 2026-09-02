@@ -56,11 +56,16 @@ async def show_user_id(message: Message) -> None:
 async def admin_panel(message: Message, state: FSMContext, admin_id: int) -> None:
     await state.clear()
     if not is_admin(message.from_user.id, admin_id):
-        await message.answer("Ця команда доступна лише майстру.", reply_markup=menu(message.from_user.id, admin_id))
+        await message.answer(
+            "Адмін-панель не показана, бо ваш Telegram ID не збігається з ADMIN_ID на сервері.\n\n"
+            f"Ваш Telegram ID: <code>{message.from_user.id}</code>\n"
+            "Поставте це число в Railway Variables як ADMIN_ID і зробіть Redeploy.",
+            reply_markup=menu(message.from_user.id, admin_id),
+        )
         return
 
     await message.answer(
-        "Адмін-панель тепер у Mini App. Там можна додавати вільні вікна, дивитися заявки й керувати записами.",
+        "Відкрийте адмін-панель. Там можна додавати вільні вікна, дивитися заявки й керувати записами.",
         reply_markup=menu(message.from_user.id, admin_id),
     )
 
