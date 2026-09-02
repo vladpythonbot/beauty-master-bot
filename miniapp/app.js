@@ -73,6 +73,20 @@ function setAdminSection(section) {
   });
 }
 
+function fillClientFromTelegram(user = {}) {
+  const nameInput = $("#clientName");
+  const contactInput = $("#clientContact");
+  const name = String(user.name || "").trim();
+  const username = String(user.username || "").trim();
+
+  if (name && !nameInput.value.trim()) {
+    nameInput.value = name;
+  }
+  if (username && !contactInput.value.trim()) {
+    contactInput.value = `@${username}`;
+  }
+}
+
 function renderQuickTimes() {
   $("#quickTimes").innerHTML = DEFAULT_TIMES.map(
     (time) => `<button class="quick-time" type="button" data-quick-time="${time}">${time}</button>`
@@ -760,6 +774,7 @@ async function init() {
   state.services = data.services;
   state.groups = data.groups;
   state.isAdmin = Boolean(data.is_admin);
+  fillClientFromTelegram(data.user);
 
   renderServices();
   renderGroups();

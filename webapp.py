@@ -139,12 +139,22 @@ async def site_page(_: web.Request) -> web.FileResponse:
 
 async def api_bootstrap(request: web.Request) -> web.Response:
     user = _get_user_from_request(request, required=False)
+    user_data = {}
+    if user:
+        full_name = " ".join(
+            part for part in [user.get("first_name"), user.get("last_name")] if part
+        ).strip()
+        user_data = {
+            "name": full_name,
+            "username": user.get("username") or "",
+        }
     groups = await request.app["db"].get_schedule_groups()
     return web.json_response(
         {
             "services": SERVICES,
             "groups": groups,
             "is_admin": _is_admin_request(request, user),
+            "user": user_data,
         }
     )
 
