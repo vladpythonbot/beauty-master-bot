@@ -146,6 +146,23 @@ function getServiceById(serviceId) {
   return state.services.find((service) => String(service.id) === String(serviceId));
 }
 
+function getSelectedGroup() {
+  return state.groups.find((group) => String(group.id) === String(state.groupId));
+}
+
+function getClientServices() {
+  const group = getSelectedGroup();
+  if (!group) return state.services;
+  return state.services.filter((service) => (group.service_ids || []).includes(service.id));
+}
+
+function syncSelectedServicesWithGroup() {
+  const availableIds = new Set(getClientServices().map((service) => service.id));
+  [...state.selectedServices].forEach((serviceId) => {
+    if (!availableIds.has(serviceId)) state.selectedServices.delete(serviceId);
+  });
+}
+
 function renderAdminCalendar() {
   const calendar = $("#adminCalendar");
   if (!calendar) return;
@@ -204,10 +221,13 @@ function renderAdminCalendar() {
 }
 
 function renderServices() {
-  $("#services").innerHTML = state.services
+  const services = getClientServices();
+  syncSelectedServicesWithGroup();
+
+  $("#services").innerHTML = services
     .map(
       (service) => `
-        <button class="card" type="button" data-service="${service.id}">
+        <button class="card${state.selectedServices.has(service.id) ? " is-active" : ""}" type="button" data-service="${service.id}">
           <strong>${escapeHtml(service.name)}</strong>
           <span>${escapeHtml(service.duration || "")} · ${escapeHtml(service.price)}</span>
           <small>${escapeHtml(service.description || "")}</small>
@@ -215,6 +235,11 @@ function renderServices() {
       `
     )
     .join("");
+
+  if (!services.length) {
+    $("#services").innerHTML = "<p class='status'>У цього майстра поки немає прив'язаних послуг.</p>";
+    return;
+  }
 
   document.querySelectorAll("[data-service]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -254,6 +279,7 @@ function renderClientGroups() {
     state.groupId = "";
     $("#dates").innerHTML = "";
     $("#times").innerHTML = "";
+    renderServices();
   }
 
   document.querySelectorAll("[data-group]").forEach((button) => {
@@ -263,6 +289,7 @@ function renderClientGroups() {
       state.slotId = 0;
       document.querySelectorAll("[data-group]").forEach((item) => item.classList.remove("is-active"));
       button.classList.add("is-active");
+      renderServices();
       await loadDates();
     });
   });
@@ -284,6 +311,7 @@ function renderGroups() {
 
   $("#adminGroup").onchange = () => {
     renderAdminCalendar();
+    renderAdminSlots();
     updateAdminSelection();
   };
   renderAdminGroups();
@@ -423,43 +451,67 @@ async function loadAdminSlots() {
   const data = await response.json();
   const freeSlots = data.slots.filter((slot) => slot.status === "free");
   state.adminSlots = freeSlots;
-  $("#statFree").textContent = freeSlots.length;
   renderAdminCalendar();
+  renderAdminSlots();
+}
 
-  if (!freeSlots.length) {
+function renderAdminSlots() {
+  const selectedGroupId = getSelectedAdminGroupId();
+  const visibleSlots = selectedGroupId
+    ? state.adminSlots.filter((slot) => String(slot.group_id) === String(selectedGroupId))
+    : state.adminSlots;
+  $("#statFree").textContent = visibleSlots.length;
+
+  if (!visibleSlots.length) {
     $("#adminSlots").innerHTML = "<p class='status'>Вільних вікон поки немає.</p>";
     return;
   }
 
-  const slotsByDate = freeSlots.reduce((result, slot) => {
-    const key = `${slot.slot_date}|${slot.group_name}`;
-    result[key] = result[key] || [];
-    result[key].push(slot);
+  const slotsByGroup = visibleSlots.reduce((result, slot) => {
+    const groupKey = `${slot.group_id}|${slot.group_name}`;
+    result[groupKey] = result[groupKey] || {};
+    result[groupKey][slot.slot_date] = result[groupKey][slot.slot_date] || [];
+    result[groupKey][slot.slot_date].push(slot);
     return result;
   }, {});
 
-  $("#adminSlots").innerHTML = Object.entries(slotsByDate)
-    .map(([key, slots]) => {
-      const [date, groupName] = key.split("|");
+  $("#adminSlots").innerHTML = Object.entries(slotsByGroup)
+    .map(([key, dates]) => {
+      const [, groupName] = key.split("|");
+      const total = Object.values(dates).reduce((sum, slots) => sum + slots.length, 0);
       return `
-        <section class="day-card">
-          <div class="day-card-head">
-            <strong>${formatDate(date)}</strong>
-            <span>${escapeHtml(groupName)}</span>
-          </div>
-          <div class="slot-pills">
-            ${slots
-              .map(
-                (slot) => `
-                  <span class="slot-pill">
-                    ${escapeHtml(slot.slot_time)}
-                    <button type="button" aria-label="Видалити ${escapeHtml(slot.slot_time)}" data-delete-slot="${slot.id}">×</button>
-                  </span>
-                `
-              )
-              .join("")}
-          </div>
-        </section>
+        <details class="master-slots" open>
+          <summary>
+            <strong>${escapeHtml(groupName)}</strong>
+            <span>${total} вік.</span>
+          </summary>
+          ${Object.entries(dates)
+            .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+            .map(
+              ([date, slots]) => `
+                <section class="day-card compact-day-card">
+                  <div class="day-card-head">
+                    <strong>${formatDate(date)}</strong>
+                    <span>${slots.length} вік.</span>
+                  </div>
+                  <div class="slot-pills">
+                    ${slots
+                      .sort((a, b) => a.slot_time.localeCompare(b.slot_time))
+                      .map(
+                        (slot) => `
+                          <span class="slot-pill">
+                            ${escapeHtml(slot.slot_time)}
+                            <button type="button" aria-label="Видалити ${escapeHtml(slot.slot_time)}" data-delete-slot="${slot.id}">×</button>
+                          </span>
+                        `
+                      )
+                      .join("")}
+                  </div>
+                </section>
+              `
+            )
+            .join("")}
+        </details>
       `;
     })
     .join("");

@@ -186,6 +186,11 @@ async def api_create_application(request: web.Request) -> web.Response:
     if not service_text:
         raise web.HTTPBadRequest(text="Selected services are invalid")
 
+    schedule_group = await request.app["db"].get_schedule_group(slot["group_id"])
+    group_service_ids = set((schedule_group or {}).get("service_ids") or [])
+    if not group_service_ids or not set(service_ids).issubset(group_service_ids):
+        raise web.HTTPBadRequest(text="Selected master does not provide these services")
+
     application_id = await request.app["db"].create_application_for_slot(
         user_id=int(user["id"]),
         username=user.get("username"),

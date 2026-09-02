@@ -673,6 +673,54 @@ select {
   background: #fff;
 }
 
+.master-slots {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.master-slots summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.master-slots summary::-webkit-details-marker {
+  display: none;
+}
+
+.master-slots summary::after {
+  content: "⌄";
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.master-slots[open] summary::after {
+  transform: rotate(180deg);
+}
+
+.master-slots summary span {
+  margin-left: auto;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 900;
+  padding: 5px 8px;
+}
+
+.compact-day-card {
+  margin-top: 8px;
+  padding: 10px;
+  background: #fbf7fb;
+}
+
 .day-card-head {
   display: flex;
   align-items: center;
@@ -689,6 +737,9 @@ select {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  max-height: 96px;
+  overflow: auto;
+  padding-bottom: 2px;
 }
 
 .slot-pill {
