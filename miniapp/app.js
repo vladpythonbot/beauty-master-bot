@@ -64,6 +64,15 @@ function setMode(mode) {
   });
 }
 
+function setAdminSection(section) {
+  document.querySelectorAll("[data-admin-section]").forEach((item) => {
+    item.classList.toggle("hidden", item.dataset.adminSection !== section);
+  });
+  document.querySelectorAll("[data-admin-tab]").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.adminTab === section);
+  });
+}
+
 function renderQuickTimes() {
   $("#quickTimes").innerHTML = DEFAULT_TIMES.map(
     (time) => `<button class="quick-time" type="button" data-quick-time="${time}">${time}</button>`
@@ -297,6 +306,7 @@ function renderClientGroups() {
 
 function renderGroups() {
   renderClientGroups();
+  $("#statMasters").textContent = state.groups.length;
   const currentAdminGroup = $("#adminGroup")?.value || state.groups[0]?.id || "";
   $("#adminGroup").innerHTML = state.groups
     .map((group) => `<option value="${escapeHtml(group.id)}">${escapeHtml(group.name)}</option>`)
@@ -456,11 +466,9 @@ async function loadAdminSlots() {
 }
 
 function renderAdminSlots() {
-  const selectedGroupId = getSelectedAdminGroupId();
-  const visibleSlots = selectedGroupId
-    ? state.adminSlots.filter((slot) => String(slot.group_id) === String(selectedGroupId))
-    : state.adminSlots;
+  const visibleSlots = state.adminSlots;
   $("#statFree").textContent = visibleSlots.length;
+  $("#statToday").textContent = visibleSlots.filter((slot) => slot.slot_date === isoDateFromToday(0)).length;
 
   if (!visibleSlots.length) {
     $("#adminSlots").innerHTML = "<p class='status'>Вільних вікон поки немає.</p>";
@@ -793,5 +801,8 @@ $("#calendarNext").addEventListener("click", () => {
 });
 document.querySelectorAll("[data-mode]").forEach((button) => {
   button.addEventListener("click", () => setMode(button.dataset.mode));
+});
+document.querySelectorAll("[data-admin-tab]").forEach((button) => {
+  button.addEventListener("click", () => setAdminSection(button.dataset.adminTab));
 });
 init().catch(() => setStatus("Не вдалося завантажити Mini App."));

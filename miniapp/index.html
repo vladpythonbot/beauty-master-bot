@@ -42,6 +42,7 @@
           <span>03</span>
           <h2>Дата і час</h2>
         </div>
+        <p class="hint">Якщо процедур кілька, оберіть стартовий час. Майстер підтвердить точну тривалість запису.</p>
         <div class="chips" id="dates"></div>
         <div class="chips times" id="times"></div>
       </section>
@@ -82,9 +83,24 @@
           <span id="statFree">0</span>
           <p>вільних вікон</p>
         </div>
+        <div>
+          <span id="statToday">0</span>
+          <p>сьогодні</p>
+        </div>
+        <div>
+          <span id="statMasters">0</span>
+          <p>майстрів</p>
+        </div>
       </section>
 
-      <section class="panel">
+      <nav class="admin-tabs" id="adminTabs" aria-label="Розділи адмін-панелі">
+        <button class="is-active" type="button" data-admin-tab="applications">Заявки</button>
+        <button type="button" data-admin-tab="schedule">Графік</button>
+        <button type="button" data-admin-tab="groups">Майстри</button>
+        <button type="button" data-admin-tab="slots">Вікна</button>
+      </nav>
+
+      <section class="panel admin-section hidden" data-admin-section="groups">
         <div class="section-head">
           <div>
             <h2>Майстри / адреси</h2>
@@ -99,7 +115,7 @@
         <div class="group-admin-list" id="adminGroups"></div>
       </section>
 
-      <section class="panel">
+      <section class="panel admin-section hidden" data-admin-section="schedule">
         <div class="section-head">
           <div>
             <h2>Шаблон графіка</h2>
@@ -208,7 +224,7 @@
         <p class="status" id="adminStatus"></p>
       </section>
 
-      <section class="panel">
+      <section class="panel admin-section" data-admin-section="applications">
         <div class="section-head">
           <div>
             <h2>Заявки</h2>
@@ -218,7 +234,7 @@
         <div class="application-list" id="adminApplications"></div>
       </section>
 
-      <section class="panel">
+      <section class="panel admin-section hidden" data-admin-section="slots">
         <div class="section-head">
           <div>
             <h2>Вільні вікна</h2>

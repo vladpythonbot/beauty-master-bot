@@ -191,6 +191,13 @@ select {
   color: var(--muted);
 }
 
+.hint {
+  margin: -4px 0 12px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .hidden {
   display: none !important;
 }
@@ -369,7 +376,7 @@ select {
 
 .admin-stats {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
   margin-top: 10px;
 }
@@ -391,6 +398,38 @@ select {
 .section-head p {
   color: var(--muted);
   font-size: 14px;
+}
+
+.admin-tabs {
+  position: sticky;
+  top: 64px;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+  margin-top: 10px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(14px);
+}
+
+.admin-tabs button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.admin-tabs button.is-active {
+  background: var(--accent);
+  color: #fff;
 }
 
 .section-head {
@@ -696,7 +735,7 @@ select {
 }
 
 .master-slots summary::after {
-  content: "⌄";
+  content: "v";
   color: var(--muted);
   font-weight: 900;
 }
@@ -800,6 +839,14 @@ select {
 }
 
 @media (max-width: 420px) {
+  .admin-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-tabs {
+    top: 58px;
+  }
+
   .quick-times {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
