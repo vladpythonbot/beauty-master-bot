@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import json
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from urllib.parse import parse_qsl
 
@@ -21,6 +22,59 @@ SITE_DIR = BASE_DIR / "site"
 def _service_names(service_ids: list[str]) -> str:
     selected = [service for service in SERVICES if service["id"] in service_ids]
     return "\n".join(f"{service['name']} — {service['price']}" for service in selected)
+
+
+def _parse_iso_date(value: str) -> date:
+    try:
+        return date.fromisoformat(value)
+    except ValueError as exc:
+        raise web.HTTPBadRequest(text="date must be YYYY-MM-DD") from exc
+
+
+def _parse_time_minutes(value: str) -> int:
+    try:
+        parsed = datetime.strptime(value, "%H:%M")
+    except ValueError as exc:
+        raise web.HTTPBadRequest(text="time must be HH:MM") from exc
+    return parsed.hour * 60 + parsed.minute
+
+
+def _format_time(minutes: int) -> str:
+    return f"{minutes // 60:02d}:{minutes % 60:02d}"
+
+
+def _build_schedule_slots(payload: dict) -> tuple[str, dict[str, list[str]]]:
+    group_id = str(payload.get("group_id", "")).strip()
+    start_date = _parse_iso_date(str(payload.get("start_date", "")))
+    end_date = _parse_iso_date(str(payload.get("end_date", "")))
+    weekdays = {int(day) for day in payload.get("weekdays", []) if str(day).isdigit()}
+    start_minutes = _parse_time_minutes(str(payload.get("start_time", "")))
+    end_minutes = _parse_time_minutes(str(payload.get("end_time", "")))
+    step_minutes = int(payload.get("step_minutes") or 60)
+
+    if not group_id or not weekdays:
+        raise web.HTTPBadRequest(text="group_id and weekdays are required")
+    if end_date < start_date:
+        raise web.HTTPBadRequest(text="end_date must be after start_date")
+    if (end_date - start_date).days > 90:
+        raise web.HTTPBadRequest(text="schedule range is too long")
+    if start_minutes >= end_minutes:
+        raise web.HTTPBadRequest(text="start_time must be before end_time")
+    if step_minutes not in {30, 45, 60, 90, 120}:
+        raise web.HTTPBadRequest(text="step_minutes is invalid")
+    if any(day < 0 or day > 6 for day in weekdays):
+        raise web.HTTPBadRequest(text="weekdays are invalid")
+
+    slots_by_date: dict[str, list[str]] = {}
+    current = start_date
+    while current <= end_date:
+        if current.weekday() in weekdays:
+            slots_by_date[current.isoformat()] = [
+                _format_time(minutes)
+                for minutes in range(start_minutes, end_minutes, step_minutes)
+            ]
+        current += timedelta(days=1)
+    return group_id, slots_by_date
 
 
 def _validate_init_data(init_data: str, bot_token: str) -> dict:
@@ -146,7 +200,7 @@ async def api_admin_slots(request: web.Request) -> web.Response:
     user = _get_user_from_request(request)
     if int(user["id"]) != request.app["admin_id"]:
         raise web.HTTPForbidden(text="Admin only")
-    slots = await request.app["db"].get_upcoming_slots(limit=100)
+    slots = await request.app["db"].get_upcoming_slots(limit=1000)
     return web.json_response({"slots": slots})
 
 
@@ -241,6 +295,21 @@ async def api_admin_add_slots(request: web.Request) -> web.Response:
     return web.json_response({"ok": True, "created": created})
 
 
+async def api_admin_add_slots_bulk(request: web.Request) -> web.Response:
+    user = _get_user_from_request(request)
+    if int(user["id"]) != request.app["admin_id"]:
+        raise web.HTTPForbidden(text="Admin only")
+
+    payload = await request.json()
+    group_id, slots_by_date = _build_schedule_slots(payload)
+    if not slots_by_date:
+        raise web.HTTPBadRequest(text="schedule has no dates")
+
+    created = await request.app["db"].add_slots_bulk(group_id, slots_by_date)
+    planned = sum(len(times) for times in slots_by_date.values())
+    return web.json_response({"ok": True, "created": created, "planned": planned})
+
+
 async def api_admin_delete_slot(request: web.Request) -> web.Response:
     user = _get_user_from_request(request)
     if int(user["id"]) != request.app["admin_id"]:
@@ -267,6 +336,7 @@ def create_web_app(db: Database, bot: Bot, bot_token: str, admin_id: int) -> web
     app.router.add_post("/api/applications", api_create_application)
     app.router.add_get("/api/admin/slots", api_admin_slots)
     app.router.add_post("/api/admin/slots", api_admin_add_slots)
+    app.router.add_post("/api/admin/slots/bulk", api_admin_add_slots_bulk)
     app.router.add_delete("/api/admin/slots/{slot_id}", api_admin_delete_slot)
     app.router.add_post("/api/admin/groups", api_admin_create_group)
     app.router.add_patch("/api/admin/groups/{group_id}", api_admin_update_group)

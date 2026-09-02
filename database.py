@@ -155,6 +155,26 @@ class Database:
             await db.commit()
         return created
 
+    async def add_slots_bulk(self, group_id: str, slots_by_date: dict[str, list[str]]) -> int:
+        created = 0
+        created_at = datetime.now().isoformat(timespec="seconds")
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute("BEGIN")
+            for slot_date, times in slots_by_date.items():
+                for slot_time in times:
+                    cursor = await db.execute(
+                        """
+                        INSERT OR IGNORE INTO schedule_slots (
+                            group_id, slot_date, slot_time, created_at
+                        )
+                        VALUES (?, ?, ?, ?)
+                        """,
+                        (group_id, slot_date, slot_time, created_at),
+                    )
+                    created += cursor.rowcount
+            await db.commit()
+        return created
+
     async def get_available_dates(self, group_id: str) -> list[str]:
         async with aiosqlite.connect(self.path) as db:
             cursor = await db.execute(

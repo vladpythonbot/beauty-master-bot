@@ -200,6 +200,36 @@ select {
   font-weight: 900;
 }
 
+.schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.weekday-picker {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.weekday-picker button {
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.weekday-picker button.is-active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
 .mode-switch {
   position: sticky;
   top: 8px;
@@ -417,6 +447,7 @@ select {
 }
 
 .admin-selection {
+  white-space: pre-line;
   margin: 0;
   color: var(--muted);
   font-size: 14px;
@@ -613,6 +644,14 @@ select {
   .admin-hero {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .schedule-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .weekday-picker {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .group-admin-item {

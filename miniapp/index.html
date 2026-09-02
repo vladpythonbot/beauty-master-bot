@@ -102,8 +102,8 @@
       <section class="panel">
         <div class="section-head">
           <div>
-            <h2>Додати вікна</h2>
-            <p>Оберіть графік, день у календарі та потрібні години.</p>
+            <h2>Шаблон графіка</h2>
+            <p>Один раз задайте правила, і вікна створяться автоматично.</p>
           </div>
         </div>
 
@@ -112,6 +112,51 @@
             <span>Графік</span>
             <select id="adminGroup"></select>
           </label>
+
+          <div class="schedule-grid">
+            <label class="field-label">
+              <span>Період</span>
+              <select id="schedulePeriod">
+                <option value="7">7 днів</option>
+                <option value="14">14 днів</option>
+                <option value="30" selected>30 днів</option>
+                <option value="60">60 днів</option>
+              </select>
+            </label>
+            <label class="field-label">
+              <span>Крок запису</span>
+              <select id="slotStep">
+                <option value="30">30 хв</option>
+                <option value="45">45 хв</option>
+                <option value="60" selected>60 хв</option>
+                <option value="90">90 хв</option>
+                <option value="120">120 хв</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="schedule-grid">
+            <label class="field-label">
+              <span>Початок</span>
+              <input id="workStart" type="time" value="09:00" />
+            </label>
+            <label class="field-label">
+              <span>Кінець</span>
+              <input id="workEnd" type="time" value="19:00" />
+            </label>
+          </div>
+
+          <div class="weekday-picker" id="weekdayPicker" aria-label="Робочі дні">
+            <button class="is-active" type="button" data-weekday="0">Пн</button>
+            <button class="is-active" type="button" data-weekday="1">Вт</button>
+            <button class="is-active" type="button" data-weekday="2">Ср</button>
+            <button class="is-active" type="button" data-weekday="3">Чт</button>
+            <button class="is-active" type="button" data-weekday="4">Пт</button>
+            <button type="button" data-weekday="5">Сб</button>
+            <button type="button" data-weekday="6">Нд</button>
+          </div>
+
+          <button class="primary" id="generateSlots" type="button">Створити графік</button>
 
           <div class="admin-calendar">
             <div class="calendar-head">
@@ -133,7 +178,7 @@
 
           <input id="adminDate" type="hidden" />
           <p class="admin-selection" id="adminSelection"></p>
-          <h3 class="form-subtitle">Час</h3>
+          <h3 class="form-subtitle">Додати разово</h3>
           <div class="quick-times" id="quickTimes"></div>
           <input id="adminTimes" type="text" placeholder="Або свої: 10:30, 14:45" />
           <button class="primary" id="addSlots" type="button">Додати</button>
