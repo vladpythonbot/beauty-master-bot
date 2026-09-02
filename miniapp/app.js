@@ -5,15 +5,18 @@ const initialMode = new URLSearchParams(window.location.search).get("mode") === 
 const state = {
   services: [],
   groups: [],
+  adminSlots: [],
   selectedServices: new Set(),
   selectedAdminTimes: new Set(),
+  adminCalendarMonth: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+  adminSelectedDate: "",
   groupId: "",
   slotId: 0,
   isAdmin: false,
 };
 
 const DEFAULT_TIMES = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"];
-const SHORT_WEEKDAYS = ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+const MONTHS = ["Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень", "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"];
 
 const $ = (selector) => document.querySelector(selector);
 
@@ -70,36 +73,93 @@ function renderQuickTimes() {
       if (state.selectedAdminTimes.has(time)) state.selectedAdminTimes.delete(time);
       else state.selectedAdminTimes.add(time);
       button.classList.toggle("is-active", state.selectedAdminTimes.has(time));
+      updateAdminSelection();
     });
   });
+}
+
+function toLocalIso(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function isoDateFromToday(offset) {
   const date = new Date();
   date.setDate(date.getDate() + offset);
-  return date.toISOString().slice(0, 10);
+  return toLocalIso(date);
 }
 
-function renderQuickDates() {
-  $("#quickDates").innerHTML = Array.from({ length: 10 }, (_, index) => {
-    const value = isoDateFromToday(index);
-    const date = new Date(`${value}T12:00:00`);
-    const label = index === 0 ? "Сьогодні" : index === 1 ? "Завтра" : SHORT_WEEKDAYS[date.getDay()];
+function addMonths(date, offset) {
+  return new Date(date.getFullYear(), date.getMonth() + offset, 1);
+}
+
+function updateAdminSelection() {
+  const selectedDate = $("#adminDate")?.value || state.adminSelectedDate;
+  const manualTimes = parseTimes($("#adminTimes")?.value || "").length;
+  const total = new Set([...state.selectedAdminTimes, ...parseTimes($("#adminTimes")?.value || "")]).size;
+  const dateText = selectedDate ? formatDate(selectedDate) : "дата не обрана";
+  const timeText = total ? `${total} год.` : "час не обрано";
+  $("#adminSelection").textContent = `Обрано: ${dateText} · ${timeText}${manualTimes ? " · є ручний час" : ""}`;
+}
+
+function getSelectedAdminGroupId() {
+  return $("#adminGroup")?.value || "";
+}
+
+function renderAdminCalendar() {
+  const calendar = $("#adminCalendar");
+  if (!calendar) return;
+
+  const month = state.adminCalendarMonth;
+  $("#calendarTitle").textContent = `${MONTHS[month.getMonth()]} ${month.getFullYear()}`;
+
+  const selectedGroupId = getSelectedAdminGroupId();
+  const slotCounts = state.adminSlots.reduce((result, slot) => {
+    if (selectedGroupId && String(slot.group_id) !== String(selectedGroupId)) return result;
+    result[slot.slot_date] = (result[slot.slot_date] || 0) + 1;
+    return result;
+  }, {});
+
+  const todayIso = isoDateFromToday(0);
+  const firstDay = new Date(month.getFullYear(), month.getMonth(), 1);
+  const mondayOffset = (firstDay.getDay() + 6) % 7;
+  const start = new Date(firstDay);
+  start.setDate(firstDay.getDate() - mondayOffset);
+
+  calendar.innerHTML = Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + index);
+    const iso = toLocalIso(date);
+    const isOutside = date.getMonth() !== month.getMonth();
+    const isPast = iso < todayIso;
+    const isToday = iso === todayIso;
+    const isActive = iso === state.adminSelectedDate;
+    const count = slotCounts[iso] || 0;
+
     return `
-      <button class="quick-date" type="button" data-quick-date="${value}">
-        <strong>${label}</strong>
-        <span>${formatDate(value).slice(0, 5)}</span>
+      <button
+        class="calendar-day${isOutside ? " is-outside" : ""}${isToday ? " is-today" : ""}${isActive ? " is-active" : ""}"
+        type="button"
+        data-calendar-date="${iso}"
+        ${isPast ? "disabled" : ""}
+      >
+        <span>${date.getDate()}</span>
+        <small>${count ? `${count} вік.` : ""}</small>
       </button>
     `;
   }).join("");
 
-  document.querySelectorAll("[data-quick-date]").forEach((button) => {
+  document.querySelectorAll("[data-calendar-date]").forEach((button) => {
     button.addEventListener("click", () => {
-      $("#adminDate").value = button.dataset.quickDate;
-      document.querySelectorAll("[data-quick-date]").forEach((item) => item.classList.remove("is-active"));
-      button.classList.add("is-active");
+      state.adminSelectedDate = button.dataset.calendarDate;
+      $("#adminDate").value = state.adminSelectedDate;
+      renderAdminCalendar();
+      updateAdminSelection();
     });
   });
+  updateAdminSelection();
 }
 
 function renderServices() {
@@ -131,6 +191,10 @@ function renderGroups() {
   $("#adminGroup").innerHTML = state.groups
     .map((group) => `<option value="${escapeHtml(group.id)}">${escapeHtml(group.name)}</option>`)
     .join("");
+  if (!state.adminSelectedDate) {
+    state.adminSelectedDate = isoDateFromToday(0);
+    $("#adminDate").value = state.adminSelectedDate;
+  }
 
   document.querySelectorAll("[data-group]").forEach((button) => {
     button.addEventListener("click", async () => {
@@ -140,6 +204,11 @@ function renderGroups() {
       button.classList.add("is-active");
       await loadDates();
     });
+  });
+
+  $("#adminGroup").addEventListener("change", () => {
+    renderAdminCalendar();
+    updateAdminSelection();
   });
 }
 
@@ -226,7 +295,9 @@ async function loadAdminSlots() {
   if (!response.ok) return;
   const data = await response.json();
   const freeSlots = data.slots.filter((slot) => slot.status === "free");
+  state.adminSlots = freeSlots;
   $("#statFree").textContent = freeSlots.length;
+  renderAdminCalendar();
 
   if (!freeSlots.length) {
     $("#adminSlots").innerHTML = "<p class='status'>Вільних вікон поки немає.</p>";
@@ -363,6 +434,7 @@ async function addAdminSlots() {
     $("#adminTimes").value = "";
     state.selectedAdminTimes.clear();
     document.querySelectorAll("[data-quick-time]").forEach((button) => button.classList.remove("is-active"));
+    updateAdminSelection();
     await loadAdminSlots();
     await loadAdminApplications();
     if (state.groupId) await loadDates();
@@ -393,7 +465,7 @@ async function init() {
   renderServices();
   renderGroups();
   renderQuickTimes();
-  renderQuickDates();
+  renderAdminCalendar();
 
   if (data.is_admin) {
     $("#modeSwitch").classList.remove("hidden");
@@ -405,6 +477,15 @@ async function init() {
 $("#sendRequest").addEventListener("click", sendApplication);
 $("#addSlots").addEventListener("click", addAdminSlots);
 $("#refreshAdmin").addEventListener("click", refreshAdmin);
+$("#adminTimes").addEventListener("input", updateAdminSelection);
+$("#calendarPrev").addEventListener("click", () => {
+  state.adminCalendarMonth = addMonths(state.adminCalendarMonth, -1);
+  renderAdminCalendar();
+});
+$("#calendarNext").addEventListener("click", () => {
+  state.adminCalendarMonth = addMonths(state.adminCalendarMonth, 1);
+  renderAdminCalendar();
+});
 document.querySelectorAll("[data-mode]").forEach((button) => {
   button.addEventListener("click", () => setMode(button.dataset.mode));
 });

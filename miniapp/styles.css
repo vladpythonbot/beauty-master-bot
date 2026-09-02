@@ -189,7 +189,15 @@ select {
 
 .admin-form {
   display: grid;
-  gap: 10px;
+  gap: 12px;
+}
+
+.field-label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
 }
 
 .mode-switch {
@@ -311,20 +319,116 @@ select {
   gap: 8px;
 }
 
-.date-strip {
-  display: flex;
+.admin-calendar {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.calendar-head {
+  display: grid;
+  grid-template-columns: 40px 1fr 40px;
+  align-items: center;
   gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 2px;
-  scrollbar-width: none;
+  text-align: center;
 }
 
-.date-strip::-webkit-scrollbar {
-  display: none;
+.calendar-head strong {
+  font-size: 16px;
 }
 
-.quick-time,
-.quick-date {
+.calendar-nav {
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.calendar-weekdays,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.calendar-weekdays span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.calendar-day {
+  min-height: 48px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 950;
+  padding: 7px 4px;
+  text-align: center;
+}
+
+.calendar-day span,
+.calendar-day small {
+  display: block;
+}
+
+.calendar-day small {
+  min-height: 14px;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.calendar-day.is-outside {
+  opacity: 0.42;
+}
+
+.calendar-day.is-today {
+  border-color: var(--accent);
+}
+
+.calendar-day.is-active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.calendar-day.is-active small {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.calendar-day:disabled {
+  cursor: not-allowed;
+  opacity: 0.28;
+}
+
+.admin-selection {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.form-subtitle {
+  margin: 4px 0 -2px;
+  font-size: 15px;
+}
+
+.quick-time {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
@@ -335,25 +439,7 @@ select {
   padding: 10px 8px;
 }
 
-.quick-date {
-  flex: 0 0 auto;
-  min-width: 78px;
-  text-align: center;
-}
-
-.quick-date strong,
-.quick-date span {
-  display: block;
-}
-
-.quick-date span {
-  margin-top: 3px;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.quick-time.is-active,
-.quick-date.is-active {
+.quick-time.is-active {
   border-color: var(--accent);
   background: var(--accent-soft);
   color: var(--accent);
