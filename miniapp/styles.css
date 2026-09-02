@@ -311,7 +311,20 @@ select {
   gap: 8px;
 }
 
-.quick-time {
+.date-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.date-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.quick-time,
+.quick-date {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
@@ -322,7 +335,25 @@ select {
   padding: 10px 8px;
 }
 
-.quick-time.is-active {
+.quick-date {
+  flex: 0 0 auto;
+  min-width: 78px;
+  text-align: center;
+}
+
+.quick-date strong,
+.quick-date span {
+  display: block;
+}
+
+.quick-date span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.quick-time.is-active,
+.quick-date.is-active {
   border-color: var(--accent);
   background: var(--accent-soft);
   color: var(--accent);
@@ -378,6 +409,59 @@ select {
   font-size: 12px;
   font-weight: 900;
   padding: 5px 8px;
+}
+
+.day-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.day-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.day-card-head span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.slot-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.slot-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 900;
+  padding: 7px 8px 7px 11px;
+}
+
+.slot-pill button {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(155, 106, 136, 0.14);
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0;
 }
 
 .item-actions {

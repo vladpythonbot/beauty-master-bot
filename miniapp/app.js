@@ -13,6 +13,7 @@ const state = {
 };
 
 const DEFAULT_TIMES = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"];
+const SHORT_WEEKDAYS = ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 
 const $ = (selector) => document.querySelector(selector);
 
@@ -58,17 +59,6 @@ function setMode(mode) {
   });
 }
 
-function showAdminDebug(debug = {}) {
-  $("#adminDebug").classList.remove("hidden");
-  $("#adminDebugText").innerHTML = `
-    Telegram initData: ${debug.has_init_data ? "є" : "немає"}<br>
-    Ваш ID з Telegram: ${escapeHtml(debug.telegram_user_id ?? "не отримано")}<br>
-    ADMIN_ID на сервері: ${escapeHtml(debug.admin_id ?? "не задано")}<br>
-    Збіг: ${debug.admin_match ? "так" : "ні"}<br><br>
-    Відкрийте Mini App саме з кнопки в Telegram після /start. Якщо ID не збігається, змініть ADMIN_ID у Railway і зробіть Redeploy.
-  `;
-}
-
 function renderQuickTimes() {
   $("#quickTimes").innerHTML = DEFAULT_TIMES.map(
     (time) => `<button class="quick-time" type="button" data-quick-time="${time}">${time}</button>`
@@ -80,6 +70,34 @@ function renderQuickTimes() {
       if (state.selectedAdminTimes.has(time)) state.selectedAdminTimes.delete(time);
       else state.selectedAdminTimes.add(time);
       button.classList.toggle("is-active", state.selectedAdminTimes.has(time));
+    });
+  });
+}
+
+function isoDateFromToday(offset) {
+  const date = new Date();
+  date.setDate(date.getDate() + offset);
+  return date.toISOString().slice(0, 10);
+}
+
+function renderQuickDates() {
+  $("#quickDates").innerHTML = Array.from({ length: 10 }, (_, index) => {
+    const value = isoDateFromToday(index);
+    const date = new Date(`${value}T12:00:00`);
+    const label = index === 0 ? "Сьогодні" : index === 1 ? "Завтра" : SHORT_WEEKDAYS[date.getDay()];
+    return `
+      <button class="quick-date" type="button" data-quick-date="${value}">
+        <strong>${label}</strong>
+        <span>${formatDate(value).slice(0, 5)}</span>
+      </button>
+    `;
+  }).join("");
+
+  document.querySelectorAll("[data-quick-date]").forEach((button) => {
+    button.addEventListener("click", () => {
+      $("#adminDate").value = button.dataset.quickDate;
+      document.querySelectorAll("[data-quick-date]").forEach((item) => item.classList.remove("is-active"));
+      button.classList.add("is-active");
     });
   });
 }
@@ -215,15 +233,37 @@ async function loadAdminSlots() {
     return;
   }
 
-  $("#adminSlots").innerHTML = freeSlots
-    .map(
-      (slot) => `
-        <div class="slot-item">
-          <span>${escapeHtml(slot.group_name)} · ${formatDate(slot.slot_date)} · ${escapeHtml(slot.slot_time)}</span>
-          <button type="button" data-delete-slot="${slot.id}">Видалити</button>
-        </div>
-      `
-    )
+  const slotsByDate = freeSlots.reduce((result, slot) => {
+    const key = `${slot.slot_date}|${slot.group_name}`;
+    result[key] = result[key] || [];
+    result[key].push(slot);
+    return result;
+  }, {});
+
+  $("#adminSlots").innerHTML = Object.entries(slotsByDate)
+    .map(([key, slots]) => {
+      const [date, groupName] = key.split("|");
+      return `
+        <section class="day-card">
+          <div class="day-card-head">
+            <strong>${formatDate(date)}</strong>
+            <span>${escapeHtml(groupName)}</span>
+          </div>
+          <div class="slot-pills">
+            ${slots
+              .map(
+                (slot) => `
+                  <span class="slot-pill">
+                    ${escapeHtml(slot.slot_time)}
+                    <button type="button" aria-label="Видалити ${escapeHtml(slot.slot_time)}" data-delete-slot="${slot.id}">×</button>
+                  </span>
+                `
+              )
+              .join("")}
+          </div>
+        </section>
+      `;
+    })
     .join("");
 
   document.querySelectorAll("[data-delete-slot]").forEach((button) => {
@@ -353,14 +393,12 @@ async function init() {
   renderServices();
   renderGroups();
   renderQuickTimes();
+  renderQuickDates();
 
   if (data.is_admin) {
     $("#modeSwitch").classList.remove("hidden");
-    $("#adminDebug").classList.add("hidden");
     await refreshAdmin();
     setMode(initialMode);
-  } else if (initialMode === "admin") {
-    showAdminDebug(data.debug);
   }
 }
 

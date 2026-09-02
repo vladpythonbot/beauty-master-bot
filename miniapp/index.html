@@ -20,14 +20,6 @@
         <button type="button" data-mode="admin">Адмін</button>
       </nav>
 
-      <section class="panel hidden" id="adminDebug">
-        <div class="step">
-          <span>!</span>
-          <h2>Адмін-панель не відкрита</h2>
-        </div>
-        <p class="status" id="adminDebugText"></p>
-      </section>
-
       <div id="bookingView">
       <section class="panel">
         <div class="step">
@@ -103,6 +95,7 @@
         <div class="admin-form">
           <select id="adminGroup"></select>
           <input id="adminDate" type="date" />
+          <div class="date-strip" id="quickDates"></div>
           <div class="quick-times" id="quickTimes"></div>
           <input id="adminTimes" type="text" placeholder="Або свої: 10:30, 14:45" />
           <button class="primary" id="addSlots" type="button">Додати</button>

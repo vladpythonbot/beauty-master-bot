@@ -74,12 +74,6 @@ async def api_bootstrap(request: web.Request) -> web.Response:
             "services": SERVICES,
             "groups": groups,
             "is_admin": is_admin,
-            "debug": {
-                "has_init_data": bool(request.headers.get("X-Telegram-Init-Data")),
-                "telegram_user_id": user_id,
-                "admin_id": request.app["admin_id"],
-                "admin_match": is_admin,
-            },
         }
     )
 
