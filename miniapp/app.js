@@ -58,6 +58,17 @@ function setMode(mode) {
   });
 }
 
+function showAdminDebug(debug = {}) {
+  $("#adminDebug").classList.remove("hidden");
+  $("#adminDebugText").innerHTML = `
+    Telegram initData: ${debug.has_init_data ? "є" : "немає"}<br>
+    Ваш ID з Telegram: ${escapeHtml(debug.telegram_user_id ?? "не отримано")}<br>
+    ADMIN_ID на сервері: ${escapeHtml(debug.admin_id ?? "не задано")}<br>
+    Збіг: ${debug.admin_match ? "так" : "ні"}<br><br>
+    Відкрийте Mini App саме з кнопки в Telegram після /start. Якщо ID не збігається, змініть ADMIN_ID у Railway і зробіть Redeploy.
+  `;
+}
+
 function renderQuickTimes() {
   $("#quickTimes").innerHTML = DEFAULT_TIMES.map(
     (time) => `<button class="quick-time" type="button" data-quick-time="${time}">${time}</button>`
@@ -345,8 +356,11 @@ async function init() {
 
   if (data.is_admin) {
     $("#modeSwitch").classList.remove("hidden");
+    $("#adminDebug").classList.add("hidden");
     await refreshAdmin();
     setMode(initialMode);
+  } else if (initialMode === "admin") {
+    showAdminDebug(data.debug);
   }
 }
 

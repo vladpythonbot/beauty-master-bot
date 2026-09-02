@@ -66,12 +66,20 @@ async def site_page(_: web.Request) -> web.FileResponse:
 
 async def api_bootstrap(request: web.Request) -> web.Response:
     user = _get_user_from_request(request, required=False)
+    user_id = int(user["id"]) if user and user.get("id") else None
+    is_admin = bool(user_id and user_id == request.app["admin_id"])
     groups = await request.app["db"].get_schedule_groups()
     return web.json_response(
         {
             "services": SERVICES,
             "groups": groups,
-            "is_admin": bool(user and int(user["id"]) == request.app["admin_id"]),
+            "is_admin": is_admin,
+            "debug": {
+                "has_init_data": bool(request.headers.get("X-Telegram-Init-Data")),
+                "telegram_user_id": user_id,
+                "admin_id": request.app["admin_id"],
+                "admin_match": is_admin,
+            },
         }
     )
 
