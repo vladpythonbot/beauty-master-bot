@@ -502,7 +502,7 @@ function renderAdminSlots() {
       const [, groupName] = key.split("|");
       const total = Object.values(dates).reduce((sum, slots) => sum + slots.length, 0);
       return `
-        <details class="master-slots" open>
+        <details class="master-slots">
           <summary>
             <strong>${escapeHtml(groupName)}</strong>
             <span>${total} вік.</span>
