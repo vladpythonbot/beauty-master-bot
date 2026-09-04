@@ -16,10 +16,10 @@ def format_date_short(value: str) -> str:
 def support_text(support_username: str = "") -> str:
     if support_username:
         return (
-            "Щоб перенести або скасувати запис, напишіть адміністратору:\n"
-            f"@{escape(support_username)}"
+            "Перенесення або скасування запису:\n"
+            f"адміністратор @{escape(support_username)}"
         )
-    return "Щоб перенести або скасувати запис, напишіть повідомлення сюди в чат. Адміністратор його побачить."
+    return "Контакт адміністратора для перенесення або скасування запису не вказано."
 
 
 def get_service(service_id: str) -> dict | None:

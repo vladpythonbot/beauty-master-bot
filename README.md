@@ -24,7 +24,7 @@
 BOT_TOKEN=your_token_here
 ADMIN_ID=123456789
 DB_PATH=beauty_bot.db
-SUPPORT_USERNAME=studio_admin
+SUPPORT_USERNAME=your_admin_username
 MINI_APP_URL=https://your-domain.up.railway.app/miniapp
 PORT=8000
 ```
