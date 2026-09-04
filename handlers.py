@@ -1,3 +1,5 @@
+from html import escape
+
 from aiogram import F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
@@ -5,33 +7,37 @@ from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 
 from database import Database
 from keyboards import admin_application_keyboard, admin_menu, main_menu
-from texts import format_date, services_text
+from texts import format_date, services_text, support_text
 
 
 router = Router()
 MINI_APP_URL = ""
+SUPPORT_USERNAME = ""
 
 
 def menu(user_id: int | None = None, admin_id: int | None = None):
     return main_menu(MINI_APP_URL, bool(user_id and admin_id and is_admin(user_id, admin_id)))
 
 
-def register_handlers(db: Database, admin_id: int, mini_app_url: str = "") -> Router:
-    global MINI_APP_URL
+def register_handlers(db: Database, admin_id: int, mini_app_url: str = "", support_username: str = "") -> Router:
+    global MINI_APP_URL, SUPPORT_USERNAME
     MINI_APP_URL = mini_app_url
-    router.message.middleware(DbMiddleware(db, admin_id))
-    router.callback_query.middleware(DbMiddleware(db, admin_id))
+    SUPPORT_USERNAME = support_username
+    router.message.middleware(DbMiddleware(db, admin_id, support_username))
+    router.callback_query.middleware(DbMiddleware(db, admin_id, support_username))
     return router
 
 
 class DbMiddleware:
-    def __init__(self, db: Database, admin_id: int):
+    def __init__(self, db: Database, admin_id: int, support_username: str):
         self.db = db
         self.admin_id = admin_id
+        self.support_username = support_username
 
     async def __call__(self, handler, event, data):
         data["db"] = self.db
         data["admin_id"] = self.admin_id
+        data["support_username"] = self.support_username
         return await handler(event, data)
 
 
@@ -84,7 +90,7 @@ async def admin_panel(message: Message, state: FSMContext, admin_id: int) -> Non
 
 
 @router.callback_query(F.data.startswith("admin_confirm:"))
-async def admin_confirm(callback: CallbackQuery, db: Database, admin_id: int) -> None:
+async def admin_confirm(callback: CallbackQuery, db: Database, admin_id: int, support_username: str) -> None:
     if not is_admin(callback.from_user.id, admin_id):
         await callback.answer("Недостатньо прав.", show_alert=True)
         return
@@ -106,9 +112,11 @@ async def admin_confirm(callback: CallbackQuery, db: Database, admin_id: int) ->
         application["user_id"],
         (
             "✅ Ваш запис підтверджено.\n\n"
+            f"Послуга:\n{application['service']}\n\n"
             f"Дата: {format_date(application['desired_date'])}\n"
             f"Час: {application['desired_time']}\n"
-            f"Майстер: {application['schedule_group'] or 'майстер'}"
+            f"Майстер: {application['schedule_group'] or 'майстер'}\n\n"
+            f"{support_text(support_username)}"
         ),
     )
     await callback.message.edit_text(callback.message.html_text + "\n\n✅ Статус: підтверджено")
@@ -179,8 +187,31 @@ async def save_phone_contact(message: Message, db: Database, admin_id: int) -> N
 
 
 @router.message()
-async def fallback(message: Message, admin_id: int) -> None:
+async def fallback(message: Message, admin_id: int, support_username: str) -> None:
+    if is_admin(message.from_user.id, admin_id):
+        await message.answer(
+            "Адмін-панель відкривається кнопкою нижче.",
+            reply_markup=admin_menu(MINI_APP_URL),
+        )
+        return
+
+    username = f"@{message.from_user.username}" if message.from_user.username else "без username"
+    full_name = message.from_user.full_name or "Клієнт"
+    text = message.text or message.caption or "Повідомлення без тексту"
+
+    await message.bot.send_message(
+        admin_id,
+        (
+            "💬 Повідомлення від клієнта\n\n"
+            f"Клієнт: <b>{escape(full_name)}</b>\n"
+            f"Telegram: {escape(username)}\n\n"
+            f"{escape(text)}"
+        ),
+    )
     await message.answer(
-        "Усе керування записом знаходиться в Mini App. Натисніть кнопку під повідомленням.",
+        (
+            "Повідомлення передано адміністратору.\n\n"
+            f"{support_text(support_username)}"
+        ),
         reply_markup=menu(message.from_user.id, admin_id),
     )

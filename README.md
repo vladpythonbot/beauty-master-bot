@@ -24,6 +24,7 @@
 BOT_TOKEN=your_token_here
 ADMIN_ID=123456789
 DB_PATH=beauty_bot.db
+SUPPORT_USERNAME=studio_admin
 MINI_APP_URL=https://your-domain.up.railway.app/miniapp
 PORT=8000
 ```
@@ -77,6 +78,11 @@ python main.py
 - `booked` — мастер подтвердил запись.
 
 Если мастер отменяет заявку, слот снова становится свободным.
+
+## Отмена и перенос записи
+
+Клиент может написать прямо в бот. Бот передаст сообщение админу.
+Если задан `SUPPORT_USERNAME`, клиент также увидит конкретный Telegram-контакт для отмены или переноса записи.
 
 ## Сайт
 

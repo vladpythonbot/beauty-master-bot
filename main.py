@@ -12,7 +12,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from config import load_config
 from database import Database
 from handlers import register_handlers
-from texts import format_date
+from texts import format_date, support_text
 from webapp import create_web_app
 
 
@@ -28,7 +28,7 @@ async def start_web_server(app: web.Application, host: str, port: int) -> web.Ap
     return runner
 
 
-async def reminder_loop(db: Database, bot: Bot) -> None:
+async def reminder_loop(db: Database, bot: Bot, support_username: str = "") -> None:
     while True:
         try:
             applications = await db.get_due_reminders(datetime.now(), REMINDER_MINUTES_BEFORE)
@@ -41,7 +41,7 @@ async def reminder_loop(db: Database, bot: Bot) -> None:
                         f"Час: {application['desired_time']}\n"
                         f"Майстер: {application['schedule_group'] or 'майстер'}\n"
                         f"Послуга:\n{application['service']}\n\n"
-                        "Якщо плани змінилися, напишіть майстру заздалегідь."
+                        f"{support_text(support_username)}"
                     ),
                 )
                 await db.mark_reminder_sent(application["id"])
@@ -62,11 +62,11 @@ async def main() -> None:
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
     dp = Dispatcher(storage=MemoryStorage())
-    dp.include_router(register_handlers(db, config.admin_id, config.mini_app_url))
+    dp.include_router(register_handlers(db, config.admin_id, config.mini_app_url, config.support_username))
 
-    web_app = create_web_app(db, bot, config.bot_token, config.admin_id, config.public_admin_mode)
+    web_app = create_web_app(db, bot, config.bot_token, config.admin_id, config.public_admin_mode, config.support_username)
     runner = await start_web_server(web_app, config.host, config.port)
-    reminders_task = asyncio.create_task(reminder_loop(db, bot))
+    reminders_task = asyncio.create_task(reminder_loop(db, bot, config.support_username))
 
     await bot.delete_webhook(drop_pending_updates=True)
     try:

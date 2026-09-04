@@ -13,6 +13,15 @@ def format_date_short(value: str) -> str:
     return f"{day}.{month}"
 
 
+def support_text(support_username: str = "") -> str:
+    if support_username:
+        return (
+            "Щоб перенести або скасувати запис, напишіть адміністратору:\n"
+            f"@{escape(support_username)}"
+        )
+    return "Щоб перенести або скасувати запис, напишіть повідомлення сюди в чат. Адміністратор його побачить."
+
+
 def get_service(service_id: str) -> dict | None:
     return next((service for service in SERVICES if service["id"] == service_id), None)
 

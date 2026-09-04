@@ -14,6 +14,7 @@ from database import Database
 from keyboards import admin_application_keyboard, share_phone_keyboard
 from texts import admin_application_text
 from texts import format_date
+from texts import support_text
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -287,7 +288,8 @@ async def api_create_application(request: web.Request) -> web.Response:
             f"Дата: {format_date(slot['slot_date'])}\n"
             f"Час: {slot['slot_time']}\n\n"
             "Майстер підтвердить запис окремим повідомленням.\n\n"
-            "За бажанням можете поділитися номером телефону кнопкою нижче."
+            "За бажанням можете поділитися номером телефону кнопкою нижче.\n\n"
+            f"{support_text(request.app['support_username'])}"
         ),
         reply_markup=share_phone_keyboard(),
     )
@@ -363,9 +365,11 @@ async def api_admin_update_application(request: web.Request) -> web.Response:
     if status == "confirmed":
         text = (
             "✅ Ваш запис підтверджено.\n\n"
+            f"Послуга:\n{application['service']}\n\n"
             f"Дата: {format_date(application['desired_date'])}\n"
             f"Час: {application['desired_time']}\n"
-            f"Майстер: {application['schedule_group'] or 'майстер'}"
+            f"Майстер: {application['schedule_group'] or 'майстер'}\n\n"
+            f"{support_text(request.app['support_username'])}"
         )
     else:
         text = "❌ На жаль, заявку скасовано. Обраний час знову доступний для запису."
@@ -418,13 +422,21 @@ async def api_admin_delete_slot(request: web.Request) -> web.Response:
     return web.json_response({"ok": deleted})
 
 
-def create_web_app(db: Database, bot: Bot, bot_token: str, admin_id: int, public_admin_mode: bool = False) -> web.Application:
+def create_web_app(
+    db: Database,
+    bot: Bot,
+    bot_token: str,
+    admin_id: int,
+    public_admin_mode: bool = False,
+    support_username: str = "",
+) -> web.Application:
     app = web.Application()
     app["db"] = db
     app["bot"] = bot
     app["bot_token"] = bot_token
     app["admin_id"] = admin_id
     app["public_admin_mode"] = public_admin_mode
+    app["support_username"] = support_username
 
     app.router.add_get("/", site_page)
     app.router.add_get("/miniapp", miniapp_page)

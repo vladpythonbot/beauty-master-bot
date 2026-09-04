@@ -33,6 +33,7 @@ class Config:
     admin_id: int
     db_path: str = DEFAULT_DB_PATH
     mini_app_url: str = ""
+    support_username: str = ""
     public_admin_mode: bool = False
     host: str = "0.0.0.0"
     port: int = 8000
@@ -43,6 +44,7 @@ def load_config() -> Config:
     admin_id = os.getenv("ADMIN_ID", "").strip()
     db_path = normalize_db_path(os.getenv("DB_PATH", DEFAULT_DB_PATH))
     mini_app_url = os.getenv("MINI_APP_URL", "").strip()
+    support_username = os.getenv("SUPPORT_USERNAME", "").strip().lstrip("@")
     public_admin_mode = os.getenv("PUBLIC_ADMIN_MODE", "false").strip().lower() in {"1", "true", "yes", "on"}
     railway_domain = os.getenv("RAILWAY_PUBLIC_DOMAIN", "").strip()
     host = os.getenv("HOST", "0.0.0.0").strip()
@@ -63,6 +65,7 @@ def load_config() -> Config:
         admin_id=int(admin_id),
         db_path=db_path,
         mini_app_url=mini_app_url,
+        support_username=support_username,
         public_admin_mode=public_admin_mode,
         host=host,
         port=port,
