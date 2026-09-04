@@ -32,10 +32,19 @@ def is_railway() -> bool:
 
 
 def validate_db_path_for_runtime(db_path: str) -> None:
-    if is_railway() and not Path(db_path).as_posix().startswith("/data/"):
+    if not is_railway():
+        return
+
+    path = Path(db_path)
+    if not path.as_posix().startswith("/data/"):
         raise RuntimeError(
             "Railway SQLite must use a persistent Volume. "
             "Set DB_PATH=/data/beauty_bot.db in Railway Variables."
+        )
+    if not path.parent.exists():
+        raise RuntimeError(
+            "Railway Volume is not mounted. "
+            "Create a Railway Volume mounted to /data before starting the bot."
         )
 
 
