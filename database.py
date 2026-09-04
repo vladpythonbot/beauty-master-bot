@@ -1,4 +1,5 @@
 from datetime import datetime
+from contextlib import closing
 import json
 import logging
 from pathlib import Path
@@ -71,8 +72,8 @@ class Database:
             stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
             backup_path = backup_dir / f"{self.db_path.stem}-{stamp}-{safe_reason}.db"
 
-            with sqlite3.connect(self.db_path) as source:
-                with sqlite3.connect(backup_path) as target:
+            with closing(sqlite3.connect(self.db_path)) as source:
+                with closing(sqlite3.connect(backup_path)) as target:
                     source.backup(target)
 
             backups = sorted(
