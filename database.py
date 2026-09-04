@@ -1,5 +1,8 @@
 from datetime import datetime
 import json
+from pathlib import Path
+import re
+import sqlite3
 from uuid import uuid4
 
 import aiosqlite
@@ -47,12 +50,41 @@ CREATE TABLE IF NOT EXISTS schedule_slots (
 """
 
 
+BACKUP_KEEP = 20
+
+
 class Database:
     def __init__(self, path: str):
-        self.path = path
+        self.path = str(Path(path).expanduser())
+        self.db_path = Path(self.path)
+
+    def _backup_database(self, reason: str) -> None:
+        if not self.db_path.exists() or self.db_path.stat().st_size == 0:
+            return
+
+        backup_dir = self.db_path.parent / "db_backups"
+        backup_dir.mkdir(parents=True, exist_ok=True)
+
+        safe_reason = re.sub(r"[^a-z0-9_-]+", "-", reason.lower()).strip("-") or "backup"
+        stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        backup_path = backup_dir / f"{self.db_path.stem}-{stamp}-{safe_reason}.db"
+
+        with sqlite3.connect(self.db_path) as source:
+            with sqlite3.connect(backup_path) as target:
+                source.backup(target)
+
+        backups = sorted(
+            backup_dir.glob(f"{self.db_path.stem}-*.db"),
+            key=lambda item: item.stat().st_mtime,
+            reverse=True,
+        )
+        for old_backup in backups[BACKUP_KEEP:]:
+            old_backup.unlink(missing_ok=True)
 
     async def init(self) -> None:
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
         async with aiosqlite.connect(self.path) as db:
+            await db.execute("PRAGMA journal_mode=WAL")
             await db.execute(CREATE_APPLICATIONS_TABLE)
             await db.execute(CREATE_GROUPS_TABLE)
             await db.execute(CREATE_SLOTS_TABLE)
@@ -123,6 +155,7 @@ class Database:
     async def create_schedule_group(self, name: str, service_ids: list[str] | None = None) -> dict:
         group_id = f"group_{uuid4().hex[:10]}"
         service_ids = service_ids or []
+        self._backup_database("create-schedule-group")
         async with aiosqlite.connect(self.path) as db:
             await db.execute(
                 "INSERT INTO schedule_groups (id, name, service_ids) VALUES (?, ?, ?)",
@@ -132,6 +165,7 @@ class Database:
         return {"id": group_id, "name": name, "service_ids": service_ids}
 
     async def update_schedule_group(self, group_id: str, name: str, service_ids: list[str] | None = None) -> bool:
+        self._backup_database("update-schedule-group")
         async with aiosqlite.connect(self.path) as db:
             cursor = await db.execute(
                 "UPDATE schedule_groups SET name = ?, service_ids = ? WHERE id = ?",
@@ -141,6 +175,7 @@ class Database:
             return cursor.rowcount > 0
 
     async def delete_schedule_group(self, group_id: str) -> tuple[bool, str]:
+        self._backup_database("delete-schedule-group")
         async with aiosqlite.connect(self.path) as db:
             cursor = await db.execute(
                 """
@@ -163,6 +198,7 @@ class Database:
 
     async def add_slots(self, group_id: str, slot_date: str, times: list[str]) -> int:
         created = 0
+        self._backup_database("add-slots")
         async with aiosqlite.connect(self.path) as db:
             for slot_time in times:
                 cursor = await db.execute(
@@ -186,6 +222,7 @@ class Database:
     async def add_slots_bulk(self, group_id: str, slots_by_date: dict[str, list[str]]) -> int:
         created = 0
         created_at = datetime.now().isoformat(timespec="seconds")
+        self._backup_database("add-slots-bulk")
         async with aiosqlite.connect(self.path) as db:
             await db.execute("BEGIN")
             for slot_date, times in slots_by_date.items():
@@ -262,6 +299,7 @@ class Database:
             return [dict(row) for row in await cursor.fetchall()]
 
     async def delete_slot(self, slot_id: int) -> bool:
+        self._backup_database("delete-slot")
         async with aiosqlite.connect(self.path) as db:
             cursor = await db.execute(
                 "DELETE FROM schedule_slots WHERE id = ? AND status = 'free'",
@@ -271,6 +309,7 @@ class Database:
             return cursor.rowcount > 0
 
     async def update_slot_time(self, slot_id: int, new_time: str) -> bool:
+        self._backup_database("update-slot-time")
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
             cursor = await db.execute("SELECT * FROM schedule_slots WHERE id = ?", (slot_id,))
@@ -298,6 +337,7 @@ class Database:
         contact: str,
         slot_id: int,
     ) -> int | None:
+        self._backup_database("create-application")
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
             await db.execute("BEGIN IMMEDIATE")
@@ -432,6 +472,7 @@ class Database:
             await db.commit()
 
     async def update_status(self, application_id: int, status: str) -> dict | None:
+        self._backup_database("update-application-status")
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
             cursor = await db.execute(
