@@ -56,6 +56,7 @@ async def main() -> None:
     config = load_config()
     db = Database(config.db_path)
     await db.init()
+    logging.info("Database path: %s", config.db_path)
 
     bot = Bot(
         token=config.bot_token,

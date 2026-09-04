@@ -27,6 +27,18 @@ def normalize_mini_app_url(value: str) -> str:
     return f"{url}/miniapp"
 
 
+def is_railway() -> bool:
+    return bool(os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PUBLIC_DOMAIN"))
+
+
+def validate_db_path_for_runtime(db_path: str) -> None:
+    if is_railway() and not Path(db_path).as_posix().startswith("/data/"):
+        raise RuntimeError(
+            "Railway SQLite must use a persistent Volume. "
+            "Set DB_PATH=/data/beauty_bot.db in Railway Variables."
+        )
+
+
 @dataclass(frozen=True)
 class Config:
     bot_token: str
@@ -54,6 +66,7 @@ def load_config() -> Config:
         raise RuntimeError("BOT_TOKEN is not set in .env")
     if not admin_id.isdigit():
         raise RuntimeError("ADMIN_ID must be a number in .env")
+    validate_db_path_for_runtime(db_path)
 
     if not mini_app_url and railway_domain:
         mini_app_url = f"https://{railway_domain}/miniapp"
