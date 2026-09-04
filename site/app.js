@@ -26,6 +26,21 @@ function localize(value) {
   return value[currentLanguage] || value.ru || Object.values(value)[0];
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function safeUrl(value) {
+  const url = String(value || "").trim();
+  if (/^(https?:|tel:|mailto:)/i.test(url)) return url;
+  return "#";
+}
+
 function demoVisual(type, label = "") {
   const [start, end] = imageThemes[type] || imageThemes.makeup;
   return `
@@ -33,7 +48,7 @@ function demoVisual(type, label = "") {
       <span class="demo-orbit"></span>
       <span class="demo-line demo-line-a"></span>
       <span class="demo-line demo-line-b"></span>
-      <span class="demo-label">${label}</span>
+      <span class="demo-label">${escapeHtml(label)}</span>
     </div>
   `;
 }
@@ -46,13 +61,13 @@ function renderServices() {
         <article class="service-card reveal">
           ${demoVisual(service.image, title)}
           <div class="card-body">
-            <h3>${title}</h3>
-            <p>${localize(service.description)}</p>
+            <h3>${escapeHtml(title)}</h3>
+            <p>${escapeHtml(localize(service.description))}</p>
             <div class="service-meta">
-              <span>${localize(service.duration)}</span>
-              <strong>${localize(service.price)}</strong>
+              <span>${escapeHtml(localize(service.duration))}</span>
+              <strong>${escapeHtml(localize(service.price))}</strong>
             </div>
-            <a class="button button-small" href="${siteConfig.telegramBotUrl}" target="_blank" rel="noreferrer">${t("actions.book")}</a>
+            <a class="button button-small" href="${safeUrl(siteConfig.telegramBotUrl)}" target="_blank" rel="noreferrer">${escapeHtml(t("actions.book"))}</a>
           </div>
         </article>
       `;
@@ -65,11 +80,11 @@ function renderMasters() {
     .map(
       (master, index) => `
         <article class="master-card reveal">
-          <div class="master-photo">${t("masters.initials")}${index + 1}</div>
-          <h3>${localize(master.name)}</h3>
-          <strong>${localize(master.specialization)}</strong>
-          <p>${localize(master.note)}</p>
-          <a class="button button-secondary button-small" href="${siteConfig.telegramBotUrl}" target="_blank" rel="noreferrer">${t("actions.bookMaster")}</a>
+          <div class="master-photo">${escapeHtml(t("masters.initials"))}${index + 1}</div>
+          <h3>${escapeHtml(localize(master.name))}</h3>
+          <strong>${escapeHtml(localize(master.specialization))}</strong>
+          <p>${escapeHtml(localize(master.note))}</p>
+          <a class="button button-secondary button-small" href="${safeUrl(siteConfig.telegramBotUrl)}" target="_blank" rel="noreferrer">${escapeHtml(t("actions.bookMaster"))}</a>
         </article>
       `
     )
@@ -87,8 +102,8 @@ function renderPortfolio(filter = currentPortfolioFilter) {
         <article class="portfolio-card reveal">
           ${demoVisual(item.image, title)}
           <div class="portfolio-caption">
-            <span>${t(`portfolio.filters.${item.category}`)}</span>
-            <strong>${title}</strong>
+            <span>${escapeHtml(t(`portfolio.filters.${item.category}`))}</span>
+            <strong>${escapeHtml(title)}</strong>
           </div>
         </article>
       `;
@@ -101,8 +116,8 @@ function renderReviews() {
     .map(
       (review) => `
         <article class="review-card reveal">
-          <span>${localize(review.title)}</span>
-          <p>${localize(review.text)}</p>
+          <span>${escapeHtml(localize(review.title))}</span>
+          <p>${escapeHtml(localize(review.text))}</p>
         </article>
       `
     )
@@ -135,22 +150,22 @@ function applyConfig() {
     node.textContent = localize(siteConfig.city);
   });
   document.querySelectorAll("[data-telegram-link]").forEach((node) => {
-    node.setAttribute("href", siteConfig.telegramBotUrl);
+    node.setAttribute("href", safeUrl(siteConfig.telegramBotUrl));
   });
   document.querySelectorAll("[data-instagram-link]").forEach((node) => {
-    node.setAttribute("href", siteConfig.instagramUrl);
+    node.setAttribute("href", safeUrl(siteConfig.instagramUrl));
   });
   document.querySelectorAll("[data-telegram-contact]").forEach((node) => {
-    node.setAttribute("href", siteConfig.telegramUrl);
+    node.setAttribute("href", safeUrl(siteConfig.telegramUrl));
   });
 
   $("#contactPhone").textContent = siteConfig.phone;
-  $("#contactPhone").setAttribute("href", `tel:${siteConfig.phone.replaceAll(" ", "")}`);
-  $("#callButton").setAttribute("href", `tel:${siteConfig.phone.replaceAll(" ", "")}`);
+  $("#contactPhone").setAttribute("href", safeUrl(`tel:${siteConfig.phone.replaceAll(" ", "")}`));
+  $("#callButton").setAttribute("href", safeUrl(`tel:${siteConfig.phone.replaceAll(" ", "")}`));
   $("#contactAddress").textContent = localize(siteConfig.address);
   $("#contactHours").textContent = localize(siteConfig.workingHours);
   $("#heroDescription").textContent = t("hero.description");
-  $("#heroEyebrow").innerHTML = `${t("hero.eyebrow")} · <span data-city>${localize(siteConfig.city)}</span>`;
+  $("#heroEyebrow").textContent = `${t("hero.eyebrow")} · ${localize(siteConfig.city)}`;
 }
 
 function applyLanguageState() {

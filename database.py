@@ -1,5 +1,6 @@
 from datetime import datetime
 import json
+import logging
 from pathlib import Path
 import re
 import sqlite3
@@ -59,27 +60,30 @@ class Database:
         self.db_path = Path(self.path)
 
     def _backup_database(self, reason: str) -> None:
-        if not self.db_path.exists() or self.db_path.stat().st_size == 0:
-            return
+        try:
+            if not self.db_path.exists() or self.db_path.stat().st_size == 0:
+                return
 
-        backup_dir = self.db_path.parent / "db_backups"
-        backup_dir.mkdir(parents=True, exist_ok=True)
+            backup_dir = self.db_path.parent / "db_backups"
+            backup_dir.mkdir(parents=True, exist_ok=True)
 
-        safe_reason = re.sub(r"[^a-z0-9_-]+", "-", reason.lower()).strip("-") or "backup"
-        stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        backup_path = backup_dir / f"{self.db_path.stem}-{stamp}-{safe_reason}.db"
+            safe_reason = re.sub(r"[^a-z0-9_-]+", "-", reason.lower()).strip("-") or "backup"
+            stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+            backup_path = backup_dir / f"{self.db_path.stem}-{stamp}-{safe_reason}.db"
 
-        with sqlite3.connect(self.db_path) as source:
-            with sqlite3.connect(backup_path) as target:
-                source.backup(target)
+            with sqlite3.connect(self.db_path) as source:
+                with sqlite3.connect(backup_path) as target:
+                    source.backup(target)
 
-        backups = sorted(
-            backup_dir.glob(f"{self.db_path.stem}-*.db"),
-            key=lambda item: item.stat().st_mtime,
-            reverse=True,
-        )
-        for old_backup in backups[BACKUP_KEEP:]:
-            old_backup.unlink(missing_ok=True)
+            backups = sorted(
+                backup_dir.glob(f"{self.db_path.stem}-*.db"),
+                key=lambda item: item.stat().st_mtime,
+                reverse=True,
+            )
+            for old_backup in backups[BACKUP_KEEP:]:
+                old_backup.unlink(missing_ok=True)
+        except (OSError, sqlite3.Error):
+            logging.exception("Failed to create database backup")
 
     async def init(self) -> None:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -471,7 +475,7 @@ class Database:
             )
             await db.commit()
 
-    async def update_status(self, application_id: int, status: str) -> dict | None:
+    async def update_status(self, application_id: int, status: str) -> tuple[dict | None, bool]:
         self._backup_database("update-application-status")
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
@@ -481,7 +485,10 @@ class Database:
             )
             application = await cursor.fetchone()
             if not application:
-                return None
+                return None, False
+
+            if application["status"] != "new":
+                return dict(application), False
 
             await db.execute(
                 "UPDATE applications SET status = ? WHERE id = ?",
@@ -506,4 +513,4 @@ class Database:
 
             await db.commit()
 
-        return await self.get_application(application_id)
+        return await self.get_application(application_id), True

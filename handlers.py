@@ -39,6 +39,13 @@ def is_admin(user_id: int, admin_id: int) -> bool:
     return user_id == admin_id
 
 
+def callback_application_id(callback: CallbackQuery) -> int | None:
+    try:
+        return int((callback.data or "").split(":", 1)[1])
+    except (IndexError, ValueError):
+        return None
+
+
 @router.message(CommandStart())
 async def start(message: Message, state: FSMContext, admin_id: int) -> None:
     await state.clear()
@@ -82,10 +89,17 @@ async def admin_confirm(callback: CallbackQuery, db: Database, admin_id: int) ->
         await callback.answer("Недостатньо прав.", show_alert=True)
         return
 
-    application_id = int(callback.data.split(":")[1])
-    application = await db.update_status(application_id, "confirmed")
+    application_id = callback_application_id(callback)
+    if application_id is None:
+        await callback.answer("Некоректна дія.", show_alert=True)
+        return
+
+    application, changed = await db.update_status(application_id, "confirmed")
     if not application:
         await callback.answer("Заявку не знайдено.", show_alert=True)
+        return
+    if not changed:
+        await callback.answer("Заявку вже оброблено.", show_alert=True)
         return
 
     await callback.bot.send_message(
@@ -107,10 +121,17 @@ async def admin_cancel(callback: CallbackQuery, db: Database, admin_id: int) -> 
         await callback.answer("Недостатньо прав.", show_alert=True)
         return
 
-    application_id = int(callback.data.split(":")[1])
-    application = await db.update_status(application_id, "cancelled")
+    application_id = callback_application_id(callback)
+    if application_id is None:
+        await callback.answer("Некоректна дія.", show_alert=True)
+        return
+
+    application, changed = await db.update_status(application_id, "cancelled")
     if not application:
         await callback.answer("Заявку не знайдено.", show_alert=True)
+        return
+    if not changed:
+        await callback.answer("Заявку вже оброблено.", show_alert=True)
         return
 
     await callback.bot.send_message(

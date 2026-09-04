@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import json
+import time
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from urllib.parse import parse_qsl
@@ -18,6 +19,7 @@ from texts import format_date
 BASE_DIR = Path(__file__).resolve().parent
 MINIAPP_DIR = BASE_DIR / "miniapp"
 SITE_DIR = BASE_DIR / "site"
+MAX_INIT_DATA_AGE_SECONDS = 24 * 60 * 60
 
 
 def _service_names(service_ids: list[str]) -> str:
@@ -33,7 +35,11 @@ def _valid_service_ids(service_ids: list[str]) -> list[str]:
 def _is_admin_request(request: web.Request, user: dict | None) -> bool:
     if request.app["public_admin_mode"]:
         return True
-    return bool(user and int(user["id"]) == request.app["admin_id"])
+    try:
+        user_id = int((user or {}).get("id", 0))
+    except (TypeError, ValueError):
+        return False
+    return user_id == request.app["admin_id"]
 
 
 def _get_admin_user_from_request(request: web.Request) -> dict | None:
@@ -58,6 +64,34 @@ def _parse_time_minutes(value: str) -> int:
     return parsed.hour * 60 + parsed.minute
 
 
+def _parse_positive_int(value: str | int, field_name: str) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        raise web.HTTPBadRequest(text=f"{field_name} must be a number") from exc
+    if parsed <= 0:
+        raise web.HTTPBadRequest(text=f"{field_name} must be positive")
+    return parsed
+
+
+def _text_field(payload: dict, field_name: str, min_length: int = 1, max_length: int = 120) -> str:
+    value = str(payload.get(field_name, "")).strip()
+    if len(value) < min_length:
+        raise web.HTTPBadRequest(text=f"{field_name} is too short")
+    if len(value) > max_length:
+        raise web.HTTPBadRequest(text=f"{field_name} is too long")
+    return value
+
+
+def _list_field(payload: dict, field_name: str, max_items: int = 20) -> list:
+    value = payload.get(field_name) or []
+    if not isinstance(value, list):
+        raise web.HTTPBadRequest(text=f"{field_name} must be a list")
+    if len(value) > max_items:
+        raise web.HTTPBadRequest(text=f"{field_name} has too many items")
+    return value
+
+
 def _format_time(minutes: int) -> str:
     return f"{minutes // 60:02d}:{minutes % 60:02d}"
 
@@ -66,10 +100,10 @@ def _build_schedule_slots(payload: dict) -> tuple[str, dict[str, list[str]]]:
     group_id = str(payload.get("group_id", "")).strip()
     start_date = _parse_iso_date(str(payload.get("start_date", "")))
     end_date = _parse_iso_date(str(payload.get("end_date", "")))
-    weekdays = {int(day) for day in payload.get("weekdays", []) if str(day).isdigit()}
+    weekdays = {int(day) for day in _list_field(payload, "weekdays", max_items=7) if str(day).isdigit()}
     start_minutes = _parse_time_minutes(str(payload.get("start_time", "")))
     end_minutes = _parse_time_minutes(str(payload.get("end_time", "")))
-    step_minutes = int(payload.get("step_minutes") or 60)
+    step_minutes = _parse_positive_int(payload.get("step_minutes") or 60, "step_minutes")
 
     if not group_id or not weekdays:
         raise web.HTTPBadRequest(text="group_id and weekdays are required")
@@ -109,6 +143,14 @@ def _validate_init_data(init_data: str, bot_token: str) -> dict:
     if not hmac.compare_digest(calculated_hash, received_hash):
         raise web.HTTPUnauthorized(text="Telegram initData is invalid")
 
+    try:
+        auth_date = int(parsed.get("auth_date", "0"))
+    except ValueError as exc:
+        raise web.HTTPUnauthorized(text="Telegram auth_date is invalid") from exc
+
+    if not auth_date or time.time() - auth_date > MAX_INIT_DATA_AGE_SECONDS:
+        raise web.HTTPUnauthorized(text="Telegram initData is expired")
+
     user_raw = parsed.get("user", "{}")
     try:
         user = json.loads(user_raw)
@@ -127,6 +169,16 @@ def _get_user_from_request(request: web.Request, required: bool = True) -> dict 
     if not init_data:
         return None
     return _validate_init_data(init_data, request.app["bot_token"])
+
+
+async def _json_payload(request: web.Request) -> dict:
+    try:
+        payload = await request.json()
+    except (json.JSONDecodeError, ValueError) as exc:
+        raise web.HTTPBadRequest(text="Request body must be valid JSON") from exc
+    if not isinstance(payload, dict):
+        raise web.HTTPBadRequest(text="Request body must be a JSON object")
+    return payload
 
 
 async def miniapp_page(_: web.Request) -> web.FileResponse:
@@ -178,12 +230,13 @@ async def api_times(request: web.Request) -> web.Response:
 
 async def api_create_application(request: web.Request) -> web.Response:
     user = _get_user_from_request(request)
-    payload = await request.json()
+    user_id = _parse_positive_int(user.get("id"), "user_id")
+    payload = await _json_payload(request)
 
-    service_ids = payload.get("service_ids") or []
-    name = str(payload.get("name", "")).strip()
-    contact = str(payload.get("contact", "")).strip()
-    slot_id = int(payload.get("slot_id") or 0)
+    service_ids = [str(item) for item in _list_field(payload, "service_ids", max_items=6)]
+    name = _text_field(payload, "name", min_length=2, max_length=80)
+    contact = _text_field(payload, "contact", min_length=4, max_length=80)
+    slot_id = _parse_positive_int(payload.get("slot_id") or 0, "slot_id")
 
     if not service_ids or not name or not contact or not slot_id:
         raise web.HTTPBadRequest(text="service_ids, name, contact and slot_id are required")
@@ -202,7 +255,7 @@ async def api_create_application(request: web.Request) -> web.Response:
         raise web.HTTPBadRequest(text="Selected master does not provide these services")
 
     application_id = await request.app["db"].create_application_for_slot(
-        user_id=int(user["id"]),
+        user_id=user_id,
         username=user.get("username"),
         client_name=name,
         service=service_text,
@@ -222,11 +275,11 @@ async def api_create_application(request: web.Request) -> web.Response:
     }
     await request.app["bot"].send_message(
         request.app["admin_id"],
-        admin_application_text(application_id, int(user["id"]), user.get("username"), data),
+        admin_application_text(application_id, user_id, user.get("username"), data),
         reply_markup=admin_application_keyboard(application_id),
     )
     await request.app["bot"].send_message(
-        int(user["id"]),
+        user_id,
         (
             "✅ Заявку отримано.\n\n"
             f"Послуга:\n{_service_names(service_ids)}\n\n"
@@ -250,11 +303,9 @@ async def api_admin_slots(request: web.Request) -> web.Response:
 async def api_admin_create_group(request: web.Request) -> web.Response:
     _get_admin_user_from_request(request)
 
-    payload = await request.json()
-    name = str(payload.get("name", "")).strip()
-    service_ids = _valid_service_ids(payload.get("service_ids") or [])
-    if len(name) < 2:
-        raise web.HTTPBadRequest(text="name is required")
+    payload = await _json_payload(request)
+    name = _text_field(payload, "name", min_length=2, max_length=80)
+    service_ids = _valid_service_ids([str(item) for item in _list_field(payload, "service_ids", max_items=20)])
     if not service_ids:
         raise web.HTTPBadRequest(text="service_ids are required")
 
@@ -266,11 +317,9 @@ async def api_admin_update_group(request: web.Request) -> web.Response:
     _get_admin_user_from_request(request)
 
     group_id = request.match_info["group_id"]
-    payload = await request.json()
-    name = str(payload.get("name", "")).strip()
-    service_ids = _valid_service_ids(payload.get("service_ids") or [])
-    if len(name) < 2:
-        raise web.HTTPBadRequest(text="name is required")
+    payload = await _json_payload(request)
+    name = _text_field(payload, "name", min_length=2, max_length=80)
+    service_ids = _valid_service_ids([str(item) for item in _list_field(payload, "service_ids", max_items=20)])
     if not service_ids:
         raise web.HTTPBadRequest(text="service_ids are required")
 
@@ -299,15 +348,17 @@ async def api_admin_applications(request: web.Request) -> web.Response:
 async def api_admin_update_application(request: web.Request) -> web.Response:
     _get_admin_user_from_request(request)
 
-    application_id = int(request.match_info["application_id"])
-    payload = await request.json()
+    application_id = _parse_positive_int(request.match_info["application_id"], "application_id")
+    payload = await _json_payload(request)
     status = payload.get("status")
     if status not in {"confirmed", "cancelled"}:
         raise web.HTTPBadRequest(text="status must be confirmed or cancelled")
 
-    application = await request.app["db"].update_status(application_id, status)
+    application, changed = await request.app["db"].update_status(application_id, status)
     if not application:
         raise web.HTTPNotFound(text="Application not found")
+    if not changed:
+        raise web.HTTPConflict(text="Application is already processed")
 
     if status == "confirmed":
         text = (
@@ -326,11 +377,11 @@ async def api_admin_update_application(request: web.Request) -> web.Response:
 async def api_admin_add_slots(request: web.Request) -> web.Response:
     _get_admin_user_from_request(request)
 
-    payload = await request.json()
+    payload = await _json_payload(request)
     group_id = str(payload.get("group_id", "")).strip()
     slot_date = str(payload.get("slot_date", "")).strip()
     slot_dates = [str(item).strip() for item in payload.get("slot_dates", []) if str(item).strip()]
-    times = payload.get("times") or []
+    times = [str(item) for item in _list_field(payload, "times", max_items=40)]
     if slot_date and slot_date not in slot_dates:
         slot_dates.append(slot_date)
     if not group_id or not slot_dates or not times:
@@ -349,7 +400,7 @@ async def api_admin_add_slots(request: web.Request) -> web.Response:
 async def api_admin_add_slots_bulk(request: web.Request) -> web.Response:
     _get_admin_user_from_request(request)
 
-    payload = await request.json()
+    payload = await _json_payload(request)
     group_id, slots_by_date = _build_schedule_slots(payload)
     if not slots_by_date:
         raise web.HTTPBadRequest(text="schedule has no dates")
@@ -362,7 +413,7 @@ async def api_admin_add_slots_bulk(request: web.Request) -> web.Response:
 async def api_admin_delete_slot(request: web.Request) -> web.Response:
     _get_admin_user_from_request(request)
 
-    slot_id = int(request.match_info["slot_id"])
+    slot_id = _parse_positive_int(request.match_info["slot_id"], "slot_id")
     deleted = await request.app["db"].delete_slot(slot_id)
     return web.json_response({"ok": deleted})
 
