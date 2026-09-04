@@ -28,6 +28,18 @@ MINI_APP_URL=https://your-domain.up.railway.app/miniapp
 PORT=8000
 ```
 
+Локально база хранится в файле `beauty_bot.db` рядом с кодом проекта.
+Даже если указать `DB_PATH=beauty_bot.db`, путь будет привязан к папке проекта.
+Так расписание не будет зависеть от того, из какой папки запустили Python.
+
+Для Railway подключите Volume и задайте:
+
+```env
+DB_PATH=/data/beauty_bot.db
+```
+
+Без Volume SQLite-файл может пропасть после перезапуска или redeploy.
+
 Запуск:
 
 ```powershell
